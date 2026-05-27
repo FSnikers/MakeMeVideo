@@ -7,12 +7,17 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ChatGPTImageOrchestrator.Web.Controllers;
 
-[ApiController] [Route("api/projects")] public class ProjectController(CreateProjectHandler create, GetProjectStatusHandler status) : ControllerBase
+[ApiController] 
+[Route("api/projects")]
+public class ProjectController(CreateProjectHandler create, GetProjectStatusHandler status) : ControllerBase
 {
-    [HttpPost] public async Task<IActionResult> Post(CreateProjectRequest request, CancellationToken ct)
+    [HttpPost]
+    public async Task<IActionResult> Post(CreateProjectRequest request, CancellationToken ct)
     {
         var id = await create.Handle(request, ct);
         return Accepted(new { projectId = id });
     }
-    [HttpGet("{id:guid}")] public Task<ProjectStatusDto> Get(Guid id, CancellationToken ct) => status.Handle(id, ct);
+    
+    [HttpGet("{id:guid}")] 
+    public Task<ProjectStatusDto> Get(Guid id, CancellationToken ct) => status.Handle(id, ct);
 }

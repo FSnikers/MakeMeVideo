@@ -10,4 +10,8 @@
     <ItemGroup>
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2"/>
     </ItemGroup>
+    <ItemGroup>
+      <None Remove="app.db" />
+      <EmbeddedResource Include="app.db" />
+    </ItemGroup>
 </Project>

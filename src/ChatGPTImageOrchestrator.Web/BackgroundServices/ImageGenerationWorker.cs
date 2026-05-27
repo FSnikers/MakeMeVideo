@@ -14,7 +14,7 @@ public class ImageGenerationWorker(IServiceProvider sp, IBackgroundTaskQueue que
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            var _ = await queue.DequeueAsync(stoppingToken);
+            var res = await queue.DequeueAsync(stoppingToken);
             using var scope = sp.CreateScope();
             logger.LogInformation("Dequeued project for processing");
         }

@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Channels;
 using ChatGPTImageOrchestrator.Application.Common.Interfaces;
+using ChatGPTImageOrchestrator.Application.UseCases;
 using ChatGPTImageOrchestrator.Infrastructure;
 using ChatGPTImageOrchestrator.Web.BackgroundServices;
 using ChatGPTImageOrchestrator.Web.Middlewares;
@@ -9,7 +10,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddInfrastructure(builder.Configuration.GetConnectionString("Default") ?? "Data Source=orchestrator.db");
+builder.Services.AddInfrastructure(builder.Configuration.GetConnectionString("Default") ?? @"Data Source=C:\Users\uvev1\RiderProjects\MakeMeVideo\src\ChatGPTImageOrchestrator.Web\bin\Debug\net8.0\app.db");
+builder.Services.AddScoped<CreateProjectHandler>();
+builder.Services.AddScoped<GetProjectStatusHandler>();
+
 builder.Services.AddSingleton(Channel.CreateUnbounded<Guid>());
 builder.Services.AddSingleton<IBackgroundTaskQueue, InMemoryBackgroundTaskQueue>();
 builder.Services.AddHostedService<ImageGenerationWorker>();
