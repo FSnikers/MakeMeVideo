@@ -1,1 +1,5 @@
-namespace ChatGPTImageOrchestrator.Application.Mappings; public static class MappingProfile { }
+namespace ChatGPTImageOrchestrator.Application.Mappings;
+
+public static class MappingProfile
+{
+}

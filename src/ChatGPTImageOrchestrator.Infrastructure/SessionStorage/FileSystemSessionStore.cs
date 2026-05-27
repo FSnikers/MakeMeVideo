@@ -1,1 +1,5 @@
-namespace ChatGPTImageOrchestrator.Infrastructure.SessionStorage; public class FileSystemSessionStore { }
+namespace ChatGPTImageOrchestrator.Infrastructure.SessionStorage;
+
+public class FileSystemSessionStore
+{
+}

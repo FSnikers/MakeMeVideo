@@ -1,1 +1,8 @@
-using Microsoft.AspNetCore.Mvc; namespace ChatGPTImageOrchestrator.Web.Controllers; [ApiController][Route("health")] public class HealthController:ControllerBase{ [HttpGet] public IActionResult Get()=>Ok("ok"); }
+using Microsoft.AspNetCore.Mvc;
+
+namespace ChatGPTImageOrchestrator.Web.Controllers;
+
+[ApiController] [Route("health")] public class HealthController : ControllerBase
+{
+    [HttpGet] public IActionResult Get() => Ok("ok");
+}

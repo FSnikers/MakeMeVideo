@@ -1,1 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework><Nullable>enable</Nullable></PropertyGroup><ItemGroup><ProjectReference Include="..\ChatGPTImageOrchestrator.Domain\ChatGPTImageOrchestrator.Domain.csproj" /></ItemGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\ChatGPTImageOrchestrator.Domain\ChatGPTImageOrchestrator.Domain.csproj"/>
+    </ItemGroup>
+</Project>

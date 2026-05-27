@@ -1,1 +1,5 @@
-namespace ChatGPTImageOrchestrator.Infrastructure.BrowserAutomation; public class SessionManager { }
+namespace ChatGPTImageOrchestrator.Infrastructure.BrowserAutomation;
+
+public class SessionManager
+{
+}

@@ -1,1 +1,11 @@
-using ChatGPTImageOrchestrator.Domain.Entities; using Microsoft.EntityFrameworkCore; namespace ChatGPTImageOrchestrator.Infrastructure.Persistence; public class AppDbContext(DbContextOptions<AppDbContext> options):DbContext(options){ public DbSet<GeneratorAccount> Accounts=>Set<GeneratorAccount>(); public DbSet<GenerationProject> Projects=>Set<GenerationProject>(); public DbSet<ImageTask> ImageTasks=>Set<ImageTask>(); }
+using ChatGPTImageOrchestrator.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace ChatGPTImageOrchestrator.Infrastructure.Persistence;
+
+public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+{
+    public DbSet<GeneratorAccount> Accounts => Set<GeneratorAccount>();
+    public DbSet<GenerationProject> Projects => Set<GenerationProject>();
+    public DbSet<ImageTask> ImageTasks => Set<ImageTask>();
+}

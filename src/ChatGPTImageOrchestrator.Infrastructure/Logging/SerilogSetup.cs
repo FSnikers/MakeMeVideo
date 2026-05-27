@@ -1,1 +1,5 @@
-namespace ChatGPTImageOrchestrator.Infrastructure.Logging; public static class SerilogSetup { }
+namespace ChatGPTImageOrchestrator.Infrastructure.Logging;
+
+public static class SerilogSetup
+{
+}

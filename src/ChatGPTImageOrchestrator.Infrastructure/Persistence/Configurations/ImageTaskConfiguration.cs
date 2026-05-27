@@ -1,1 +1,5 @@
-namespace ChatGPTImageOrchestrator.Infrastructure.Persistence.Configurations; public class ImageTaskConfiguration { }
+namespace ChatGPTImageOrchestrator.Infrastructure.Persistence.Configurations;
+
+public class ImageTaskConfiguration
+{
+}

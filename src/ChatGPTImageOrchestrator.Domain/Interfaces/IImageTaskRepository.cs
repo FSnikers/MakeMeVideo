@@ -1,1 +1,14 @@
-using ChatGPTImageOrchestrator.Domain.Entities; namespace ChatGPTImageOrchestrator.Domain.Interfaces; public interface IImageTaskRepository { Task<ImageTask?> GetNextPendingAsync(CancellationToken ct); Task<IReadOnlyList<ImageTask>> GetByProjectIdAsync(Guid projectId, CancellationToken ct); Task UpdateAsync(ImageTask task, CancellationToken ct); }
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using ChatGPTImageOrchestrator.Domain.Entities;
+
+namespace ChatGPTImageOrchestrator.Domain.Interfaces;
+
+public interface IImageTaskRepository
+{
+    Task<ImageTask?> GetNextPendingAsync(CancellationToken ct);
+    Task<IReadOnlyList<ImageTask>> GetByProjectIdAsync(Guid projectId, CancellationToken ct);
+    Task UpdateAsync(ImageTask task, CancellationToken ct);
+}

@@ -1,1 +1,16 @@
-using ChatGPTImageOrchestrator.Domain.Enums; namespace ChatGPTImageOrchestrator.Domain.Entities; public class GenerationProject { public Guid Id { get; set; } public string Name { get; set; } = string.Empty; public string GlobalPreCondition { get; set; } = string.Empty; public string TechnicalSuffix { get; set; } = string.Empty; public ProjectStatus Status { get; set; } = ProjectStatus.Queued; public DateTimeOffset CreatedDate { get; set; } = DateTimeOffset.UtcNow; public ICollection<ImageTask> ImageTasks { get; set; } = new List<ImageTask>(); }
+using System;
+using System.Collections.Generic;
+using ChatGPTImageOrchestrator.Domain.Enums;
+
+namespace ChatGPTImageOrchestrator.Domain.Entities;
+
+public class GenerationProject
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string GlobalPreCondition { get; set; } = string.Empty;
+    public string TechnicalSuffix { get; set; } = string.Empty;
+    public ProjectStatus Status { get; set; } = ProjectStatus.Queued;
+    public DateTimeOffset CreatedDate { get; set; } = DateTimeOffset.UtcNow;
+    public ICollection<ImageTask> ImageTasks { get; set; } = new List<ImageTask>();
+}
