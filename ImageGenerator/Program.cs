@@ -1,4 +1,6 @@
-using ImageGenerator.Services.Interfaces;
+using ImageGenerator.Config.Interfaces;
+using ImageGenerator.Services.FilePrompt.Interfaces;
+using ImageGenerator.Services.ImageGenerator.Abstractions;
 using ImageGenerator.Startup;
 using Microsoft.Extensions.DependencyInjection;
 

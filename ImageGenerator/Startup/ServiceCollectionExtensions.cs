@@ -1,8 +1,16 @@
+using ImageGenerator.Config;
+using ImageGenerator.Config.Interfaces;
 using ImageGenerator.Services;
+using ImageGenerator.Services.AccountStorage;
+using ImageGenerator.Services.AccountStorage.Interfaces;
 using ImageGenerator.Services.Browser;
-using ImageGenerator.Services.ChatGPT;
-using ImageGenerator.Services.ChatGPT.Interfaces;
-using ImageGenerator.Services.Interfaces;
+using ImageGenerator.Services.FilePrompt;
+using ImageGenerator.Services.FilePrompt.Interfaces;
+using ImageGenerator.Services.ImageGenerator.Abstractions;
+using ImageGenerator.Services.ImageGenerator.ChatGPT;
+using ImageGenerator.Services.ImageGenerator.ChatGPT.Modules;
+using ImageGenerator.Services.ImageGenerator.ChatGPT.Modules.Interfaces;
+using ImageGenerator.Services.ImageGenerator.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -32,18 +40,18 @@ public static class ServiceCollectionExtensions
             return factory;
         });
 
-        services.AddTransient<IChatGptLoginService, ChatGptLoginService>();
-        services.AddTransient<IChatGptPageInteractor, ChatGptPageInteractor>();
-        services.AddTransient<IChatGptErrorAnalyzer, ChatGptErrorAnalyzer>();
-        services.AddTransient<IChatGptImageExtractorHelper>(sp =>
+        services.AddTransient<IChatGptLoginModule, ChatGptLoginModule>();
+        services.AddTransient<IChatGptPageInteractorModule, ChatGptPageInteractorModule>();
+        services.AddTransient<IChatGptErrorAnalyzerModule, ChatGptErrorAnalyzerModule>();
+        services.AddTransient<IChatGptImageExtractorHelperModule>(sp =>
         {
             var config = sp.GetRequiredService<IConfigManager>().GetConfig();
-            return new ChatGptImageExtractorHelper(
+            return new ChatGptImageExtractorHelperModule(
                 sp.GetRequiredService<IBrowserDriverFactory>(),
-                sp.GetRequiredService<ILogger<ChatGptImageExtractorHelper>>(),
+                sp.GetRequiredService<ILogger<ChatGptImageExtractorHelperModule>>(),
                 config.OutputDirectory);
         });
-        services.AddTransient<IChatGptImageExtractor, ChatGptImageExtractor>();
+        services.AddTransient<IChatGptImageExtractorModule, ChatGptImageExtractorModule>();
 
         // Register HttpClient factory for internal use (downloads)
         services.AddHttpClient("Downloader")

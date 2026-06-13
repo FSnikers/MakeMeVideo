@@ -1,5 +1,7 @@
-using ImageGenerator.Models;
-using ImageGenerator.Services.Interfaces;
+using ImageGenerator.Config.Interfaces;
+using ImageGenerator.Services.FilePrompt.Interfaces;
+using ImageGenerator.Services.ImageGenerator.Abstractions;
+using ImageGenerator.Services.ImageGenerator.Models;
 
 namespace ImageGenerator.Startup;
 
