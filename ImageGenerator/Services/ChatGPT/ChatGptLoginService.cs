@@ -1,8 +1,8 @@
 using System.Text.Json;
-using ImageGenerator.Interfaces;
 using ImageGenerator.Models;
 using ImageGenerator.Services.Browser;
 using ImageGenerator.Services.ChatGPT.Interfaces;
+using ImageGenerator.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Interactions;

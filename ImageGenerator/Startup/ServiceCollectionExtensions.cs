@@ -1,8 +1,8 @@
-using ImageGenerator.Interfaces;
 using ImageGenerator.Services;
 using ImageGenerator.Services.Browser;
 using ImageGenerator.Services.ChatGPT;
 using ImageGenerator.Services.ChatGPT.Interfaces;
+using ImageGenerator.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 

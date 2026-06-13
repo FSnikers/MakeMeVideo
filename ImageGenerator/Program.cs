@@ -1,4 +1,4 @@
-using ImageGenerator.Interfaces;
+using ImageGenerator.Services.Interfaces;
 using ImageGenerator.Startup;
 using Microsoft.Extensions.DependencyInjection;
 

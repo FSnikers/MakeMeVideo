@@ -1,6 +1,6 @@
 using System.Text.Json;
-using ImageGenerator.Interfaces;
 using ImageGenerator.Models;
+using ImageGenerator.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace ImageGenerator.Services;

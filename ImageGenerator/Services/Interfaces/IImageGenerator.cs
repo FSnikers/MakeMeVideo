@@ -1,6 +1,6 @@
 using ImageGenerator.Models;
 
-namespace ImageGenerator.Interfaces;
+namespace ImageGenerator.Services.Interfaces;
 
 public interface IImageGenerator
 {
