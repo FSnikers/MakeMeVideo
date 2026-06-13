@@ -125,6 +125,76 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         "button[data-action='submit']"
     ];
 
+    private static readonly Random _rng = new();
+
+    private static void HumanLikeType(IWebElement element, string text)
+    {
+        element.Click();
+
+        if (string.IsNullOrEmpty(text))
+            return;
+
+        if (text.Length > 50)
+        {
+            foreach (var c in text)
+            {
+                element.SendKeys(c.ToString());
+                var baseDelay = text.Length > 200 ? 5 : 15;
+                var variation = _rng.Next(5, 25);
+                Thread.Sleep(baseDelay + variation);
+
+                if (_rng.Next(50) == 0)
+                    Thread.Sleep(_rng.Next(200, 500));
+            }
+        }
+        else
+        {
+            element.Clear();
+
+            foreach (var c in text)
+            {
+                element.SendKeys(c.ToString());
+                Thread.Sleep(_rng.Next(40, 120));
+
+                if (_rng.Next(30) == 0)
+                    Thread.Sleep(_rng.Next(200, 400));
+            }
+        }
+    }
+
+    private static void RandomDelay(int minMs = 300, int maxMs = 800)
+    {
+        Thread.Sleep(_rng.Next(minMs, maxMs));
+    }
+
+    private void NaturalClick(IWebElement element)
+    {
+        if (_driver == null) { element.Click(); return; }
+        var actions = new Actions(_driver);
+        var offsetX = _rng.Next(1, Math.Max(1, element.Size.Width - 1));
+        var offsetY = _rng.Next(1, Math.Max(1, element.Size.Height - 1));
+
+        actions
+            .MoveToElement(element, offsetX, offsetY)
+            .Pause(TimeSpan.FromMilliseconds(_rng.Next(50, 200)))
+            .Click()
+            .Perform();
+    }
+
+    private void ScrollToElement(IWebElement element)
+    {
+        if (_driver == null) return;
+        try
+        {
+            var y = element.Location.Y - _rng.Next(100, 300);
+            _driver.ExecuteScript($"window.scrollTo({{ top: {y}, behavior: 'smooth' }});");
+            Thread.Sleep(_rng.Next(300, 700));
+        }
+        catch
+        {
+        }
+    }
+
     public ChatGptImageGenerator(
         IAccountStorage accountStorage,
         ILogger<ChatGptImageGenerator> logger,
@@ -135,29 +205,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         _logger = logger;
         _outputDirectory = outputDirectory;
 
-        var options = new ChromeOptions();
-
-        if (headless)
-            options.AddArgument("--headless=new");
-
-        options.AddArgument("--disable-blink-features=AutomationControlled");
-        options.AddArgument("--disable-dev-shm-usage");
-        options.AddArgument("--no-sandbox");
-        options.AddArgument("--window-size=1920,1080");
-        options.AddArgument("--disable-notifications");
-        options.AddArgument("--lang=en-US");
-        options.AddExcludedArgument("enable-automation");
-
-        options.AddUserProfilePreference("credentials_enable_service", false);
-        options.AddUserProfilePreference("profile.password_manager_enabled", false);
-
-        _driver = new ChromeDriver(options);
-        _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(DefaultTimeoutSeconds))
-        {
-            PollingInterval = TimeSpan.FromMilliseconds(PollingIntervalMs)
-        };
-
-        _driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(60);
+        LaunchDriver(headless);
     }
 
     public async Task<GenerationResult> GenerateImageAsync(GenerationRequest request)
@@ -339,28 +387,24 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         {
             _driver.Navigate().GoToUrl("https://chatgpt.com/auth/login");
             WaitForPageLoad();
-            Thread.Sleep(2000);
+            RandomDelay(1500, 3000);
 
             var emailInput = FindElementWithFallback(LoginInputSelectors, ShortTimeoutSeconds);
             if (emailInput != null)
             {
-                emailInput.Click();
-                emailInput.Clear();
-                emailInput.SendKeys(_currentAccount.Email);
-                Thread.Sleep(500);
+                HumanLikeType(emailInput, _currentAccount.Email);
+                RandomDelay(800, 1500);
 
                 var continueBtn = FindElementWithFallback(SubmitButtonSelectors, ShortTimeoutSeconds);
                 continueBtn?.Click();
-                Thread.Sleep(2000);
+                RandomDelay(2000, 3000);
             }
 
             var passwordInput = FindElementWithFallback(PasswordInputSelectors, ShortTimeoutSeconds);
             if (passwordInput != null)
             {
-                passwordInput.Click();
-                passwordInput.Clear();
-                passwordInput.SendKeys(_currentAccount.Password);
-                Thread.Sleep(500);
+                HumanLikeType(passwordInput, _currentAccount.Password);
+                RandomDelay(800, 1500);
 
                 var loginBtn = FindElementWithFallback(SubmitButtonSelectors, ShortTimeoutSeconds);
                 loginBtn?.Click();
@@ -370,21 +414,17 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
                 var allInputs = _driver.FindElements(By.TagName("input"));
                 if (allInputs.Count >= 1)
                 {
-                    allInputs[0].Click();
-                    allInputs[0].Clear();
-                    allInputs[0].SendKeys(_currentAccount.Email);
-                    Thread.Sleep(500);
+                    HumanLikeType(allInputs[0], _currentAccount.Email);
+                    RandomDelay(800, 1500);
 
                     var btns = FindSubmitButtons();
                     btns.FirstOrDefault()?.Click();
-                    Thread.Sleep(2000);
+                    RandomDelay(2000, 3000);
 
                     if (allInputs.Count >= 2)
                     {
-                        allInputs[1].Click();
-                        allInputs[1].Clear();
-                        allInputs[1].SendKeys(_currentAccount.Password);
-                        Thread.Sleep(500);
+                        HumanLikeType(allInputs[1], _currentAccount.Password);
+                        RandomDelay(800, 1500);
                         btns.FirstOrDefault()?.Click();
                     }
                 }
@@ -416,10 +456,8 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         if (allInputs.Count > 0)
         {
             var emailField = allInputs[0];
-            emailField.Click();
-            emailField.Clear();
-            emailField.SendKeys(_currentAccount.Email);
-            Thread.Sleep(500);
+            HumanLikeType(emailField, _currentAccount.Email);
+            RandomDelay(800, 1500);
 
             var submitBtns = allButtons.Where(b =>
             {
@@ -431,17 +469,15 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
 
             var firstRelevant = submitBtns.FirstOrDefault() ?? allButtons.FirstOrDefault();
             firstRelevant?.Click();
-            Thread.Sleep(2000);
+            RandomDelay(2000, 3000);
         }
 
         var inputsAfter = _driver.FindElements(By.TagName("input")).ToList();
         if (inputsAfter.Count > 0)
         {
             var passwordField = inputsAfter[0];
-            passwordField.Click();
-            passwordField.Clear();
-            passwordField.SendKeys(_currentAccount.Password);
-            Thread.Sleep(500);
+            HumanLikeType(passwordField, _currentAccount.Password);
+            RandomDelay(800, 1500);
 
             var buttonsAfter = _driver.FindElements(By.TagName("button")).ToList();
             var submitBtns2 = buttonsAfter.Where(b =>
@@ -524,12 +560,8 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
                 }
             }
 
-            textarea.Click();
-            Thread.Sleep(300);
-
-            textarea.Clear();
-            textarea.SendKeys(prompt);
-            Thread.Sleep(1000);
+            HumanLikeType(textarea, prompt);
+            RandomDelay(500, 1200);
 
             var sendButton = FindElementWithFallback(SendButtonSelectors, ShortTimeoutSeconds);
             if (sendButton == null || !sendButton.Enabled)
@@ -841,6 +873,104 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         }
     }
 
+    private void LaunchDriver(bool headless = false)
+    {
+        var options = CreateChromeOptions(headless);
+
+        var service = ChromeDriverService.CreateDefaultService();
+        service.HideCommandPromptWindow = true;
+        service.SuppressInitialDiagnosticInformation = true;
+
+        _driver = new ChromeDriver(service, options);
+        _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(DefaultTimeoutSeconds))
+        {
+            PollingInterval = TimeSpan.FromMilliseconds(PollingIntervalMs)
+        };
+
+        _driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(60);
+        ApplyAntiDetectionMeasures();
+    }
+
+    private static ChromeOptions CreateChromeOptions(bool headless)
+    {
+        var options = new ChromeOptions();
+
+        options.AddArgument("--no-first-run");
+        options.AddArgument("--no-default-browser-check");
+        options.AddArgument("--disable-search-engine-choice-screen");
+
+        var userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+                        "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+        options.AddArgument($"--user-agent={userAgent}");
+
+        options.AddArgument("--disable-blink-features=AutomationControlled");
+        options.AddArgument("--disable-dev-shm-usage");
+        options.AddArgument("--no-sandbox");
+        options.AddArgument("--disable-notifications");
+        options.AddArgument("--lang=en-US");
+        options.AddArgument("--disable-renderer-backgrounding");
+        options.AddArgument("--disable-background-timer-throttling");
+        options.AddArgument("--disable-backgrounding-occluded-windows");
+
+        options.AddExcludedArgument("enable-automation");
+        options.AddAdditionalOption("useAutomationExtension", false);
+
+        options.AddUserProfilePreference("credentials_enable_service", false);
+        options.AddUserProfilePreference("profile.password_manager_enabled", false);
+        options.AddUserProfilePreference("excludeSwitches", new[] { "enable-automation" });
+        options.AddUserProfilePreference("enable_do_not_track", true);
+        options.AddUserProfilePreference("download_restrictions", 3);
+
+        if (headless)
+            options.AddArgument("--headless=new");
+
+        return options;
+    }
+
+    private void ApplyAntiDetectionMeasures()
+    {
+        if (_driver == null) return;
+
+        var script = @"
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+            Object.defineProperty(navigator, '__webdriver', { get: () => undefined });
+            Object.defineProperty(navigator, '__driver_evaluate', { get: () => undefined });
+            Object.defineProperty(navigator, '__selenium_evaluate', { get: () => undefined });
+            Object.defineProperty(navigator, '__fxdriver_evaluate', { get: () => undefined });
+            Object.defineProperty(navigator, '__webdriver_evaluate', { get: () => undefined });
+            Object.defineProperty(navigator, '__lastWatirAlert', { get: () => undefined });
+            Object.defineProperty(navigator, '__lastWatirConfirm', { get: () => undefined });
+            Object.defineProperty(navigator, '__lastWatirPrompt', { get: () => undefined });
+
+            window.chrome = { runtime: {} };
+            Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+            Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en', 'ru'] });
+
+            const originalQuery = window.navigator.permissions.query;
+            window.navigator.permissions.query = (parameters) => (
+                parameters.name === 'notifications'
+                    ? Promise.resolve({ state: Notification.permission })
+                    : originalQuery(parameters)
+            );
+
+            Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
+            Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
+            Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 0 });
+            Object.defineProperty(navigator, 'pdfViewerEnabled', { get: () => false });
+
+            const getParameter = WebGLRenderingContext.prototype.getParameter;
+            WebGLRenderingContext.prototype.getParameter = function(parameter) {
+                if (parameter === 37445) return 'Intel Inc.';
+                if (parameter === 37446) return 'Intel Iris OpenGL Engine';
+                return getParameter(parameter);
+            };
+        ";
+
+        _driver.ExecuteScript(script);
+
+        _driver.ExecuteScript(script);
+    }
+
     private void RestartDriver()
     {
         try
@@ -852,21 +982,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         {
         }
 
-        var options = new ChromeOptions();
-        options.AddArgument("--disable-blink-features=AutomationControlled");
-        options.AddArgument("--disable-dev-shm-usage");
-        options.AddArgument("--no-sandbox");
-        options.AddArgument("--window-size=1920,1080");
-        options.AddArgument("--disable-notifications");
-        options.AddExcludedArgument("enable-automation");
-        options.AddUserProfilePreference("credentials_enable_service", false);
-        options.AddUserProfilePreference("profile.password_manager_enabled", false);
-
-        _driver = new ChromeDriver(options);
-        _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(DefaultTimeoutSeconds))
-        {
-            PollingInterval = TimeSpan.FromMilliseconds(PollingIntervalMs)
-        };
+        LaunchDriver();
     }
 
     private void WaitForPageLoad()
@@ -875,6 +991,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         {
             var tempWait = new WebDriverWait(_driver, TimeSpan.FromSeconds(30));
             tempWait.Until(d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
+            ApplyAntiDetectionMeasures();
         }
         catch
         {
