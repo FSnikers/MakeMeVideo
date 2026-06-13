@@ -12,7 +12,8 @@ public static class GenerationExtensions
 {
     public static async Task RunSingleGenerationAsync(
         this IImageGenerator generator,
-        IConfigManager configManager)
+        IConfigManager configManager,
+        CancellationToken cancellationToken = default)
     {
         Console.Write("\nВведите промпт для генерации изображения: ");
         var promptText = Console.ReadLine();
@@ -34,7 +35,7 @@ public static class GenerationExtensions
         };
 
         Console.WriteLine("\nГенерация изображения...\n");
-        var result = await generator.GenerateImageAsync(request);
+        var result = await generator.GenerateImageAsync(request, cancellationToken);
 
         if (result.IsSuccess)
         {
@@ -53,7 +54,8 @@ public static class GenerationExtensions
     public static async Task GenerateAllPendingPromptsAsync(
         this IImageGenerator generator,
         IPromptRepository repository,
-        IConfigManager configManager)
+        IConfigManager configManager,
+        CancellationToken cancellationToken = default)
     {
         var pendingPrompts = await repository.GetPendingPromptsAsync();
         pendingPrompts = pendingPrompts.Where(p => p.Status == "pending").ToList();
@@ -67,17 +69,21 @@ public static class GenerationExtensions
         Console.WriteLine($"\nНачинаю генерацию {pendingPrompts.Count()} изображений...\n");
 
         var config = configManager.GetConfig();
-        var semaphore = new SemaphoreSlim(config.MaxParallelRequests);
+        var semaphore = new SemaphoreSlim(1, 1);
         var tasks = new List<Task>();
 
         foreach (var prompt in pendingPrompts)
         {
-            await semaphore.WaitAsync();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await semaphore.WaitAsync(cancellationToken);
 
             tasks.Add(Task.Run(async () =>
             {
                 try
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     await repository.UpdatePromptStatusAsync(prompt.Id, "processing");
 
                     Console.WriteLine($"[{prompt.Id}] Генерация: {prompt.Text[..Math.Min(60, prompt.Text.Length)]}...");
@@ -91,7 +97,7 @@ public static class GenerationExtensions
                         Quality = prompt.Parameters?.Quality ?? config.Quality
                     };
 
-                    var result = await generator.GenerateImageAsync(request);
+                    var result = await generator.GenerateImageAsync(request, cancellationToken);
 
                     if (result.IsSuccess)
                     {
@@ -104,6 +110,10 @@ public static class GenerationExtensions
                         Console.WriteLine($"❌ [{prompt.Id}] Ошибка: {result.ErrorMessage}");
                     }
                 }
+                catch (OperationCanceledException)
+                {
+                    Console.WriteLine($"⏹ [{prompt.Id}] Отменено");
+                }
                 catch (Exception ex)
                 {
                     await repository.UpdatePromptStatusAsync(prompt.Id, "failed", errorMessage: ex.Message);
@@ -113,7 +123,7 @@ public static class GenerationExtensions
                 {
                     semaphore.Release();
                 }
-            }));
+            }, cancellationToken));
         }
 
         await Task.WhenAll(tasks);

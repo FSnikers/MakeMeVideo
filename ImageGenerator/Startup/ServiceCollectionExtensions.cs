@@ -26,6 +26,13 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPromptRepository, FilePromptRepository>();
         services.AddSingleton<IAccountStorage, JsonAccountStorage>();
 
+        // Register HttpClient factory for internal use (downloads)
+        services.AddHttpClient("Downloader")
+            .ConfigureHttpClient(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+
         var apiType = apiTypeOverride ?? ReadConfigApiType();
 
         if (apiType == "ChatGPT")
@@ -35,12 +42,17 @@ public static class ServiceCollectionExtensions
                 var accountStorage = sp.GetRequiredService<IAccountStorage>();
                 var logger = sp.GetRequiredService<ILogger<ChatGptImageGenerator>>();
                 var config = sp.GetRequiredService<IConfigManager>().GetConfig();
-                return new ChatGptImageGenerator(accountStorage, logger, config.OutputDirectory, headless: false);
+                return new ChatGptImageGenerator(accountStorage, logger, config.OutputDirectory, config.Headless);
             });
         }
         else
         {
-            services.AddHttpClient<IImageGenerator, OpenAiImageGenerator>();
+            services.AddHttpClient("OpenAi")
+                .ConfigureHttpClient(client =>
+                {
+                    client.Timeout = TimeSpan.FromSeconds(120);
+                });
+            services.AddSingleton<IImageGenerator, OpenAiImageGenerator>();
         }
 
         return services;

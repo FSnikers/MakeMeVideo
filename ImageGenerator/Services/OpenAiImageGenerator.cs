@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using ImageGenerator.Interfaces;
 using ImageGenerator.Models;
@@ -10,35 +11,33 @@ using Microsoft.Extensions.Logging;
 
 namespace ImageGenerator.Services;
 
-/// <summary>
-/// Генератор изображений через OpenAI API (DALL-E)
-/// </summary>
 public class OpenAiImageGenerator : IImageGenerator
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfigManager _configManager;
     private readonly ILogger<OpenAiImageGenerator> _logger;
 
     public OpenAiImageGenerator(
-        HttpClient httpClient,
+        IHttpClientFactory httpClientFactory,
         IConfigManager configManager,
         ILogger<OpenAiImageGenerator> logger)
     {
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
         _configManager = configManager;
         _logger = logger;
     }
 
-    public async Task<GenerationResult> GenerateImageAsync(GenerationRequest request)
+    public async Task<GenerationResult> GenerateImageAsync(GenerationRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new GenerationResult();
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
         try
         {
             var config = _configManager.GetConfig();
 
-            // Формируем запрос к OpenAI API
+            if (string.IsNullOrEmpty(config.ApiKey))
+                return GenerationResult.Failure("API key is not configured", "ConfigError");
+
             var payload = new
             {
                 model = request.Model,
@@ -52,46 +51,55 @@ public class OpenAiImageGenerator : IImageGenerator
             var json = JsonSerializer.Serialize(payload);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {config.ApiKey}");
+            var client = _httpClientFactory.CreateClient("OpenAi");
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, config.ServerUrl)
+            {
+                Content = content
+            };
+            requestMessage.Headers.Add("Authorization", $"Bearer {config.ApiKey}");
 
-            var response = await _httpClient.PostAsync(config.ServerUrl, content);
-            var responseJson = await response.Content.ReadAsStringAsync();
+            var response = await client.SendAsync(requestMessage, cancellationToken);
+            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
             {
                 using var doc = JsonDocument.Parse(responseJson);
-                var imageUrl = doc.RootElement.GetProperty("data")[0].GetProperty("url").GetString();
-                var revisedPrompt = doc.RootElement.GetProperty("data")[0].GetProperty("revised_prompt").GetString();
+                var data = doc.RootElement.GetProperty("data")[0];
 
-                // Скачиваем и сохраняем изображение
-                var outputPath = await DownloadImageAsync(imageUrl!, request.Prompt);
+                var imageUrl = data.GetProperty("url").GetString();
+                if (string.IsNullOrEmpty(imageUrl))
+                    return GenerationResult.Failure("API returned empty image URL", "ApiError");
 
-                result.IsSuccess = true;
-                result.ImagePath = outputPath;
-                result.RevisedPrompt = revisedPrompt;
+                var revisedPrompt = data.TryGetProperty("revised_prompt", out var rp)
+                    ? rp.GetString()
+                    : null;
+
+                var outputPath = await DownloadImageAsync(imageUrl, cancellationToken);
+
+                return GenerationResult.Success(outputPath, revisedPrompt);
             }
-            else
-            {
-                result.IsSuccess = false;
-                result.ErrorMessage = $"API Error: {response.StatusCode} - {responseJson}";
-                _logger.LogError(result.ErrorMessage);
-            }
+
+            var error = $"API Error: {response.StatusCode} - {responseJson}";
+            _logger.LogError("OpenAI API error: {Error}", error);
+            return GenerationResult.Failure(error, "ApiError");
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Image generation cancelled");
+            return GenerationResult.Failure("Генерация отменена", "Cancelled");
         }
         catch (Exception ex)
         {
-            result.IsSuccess = false;
-            result.ErrorMessage = ex.Message;
             _logger.LogError(ex, "Ошибка при генерации изображения");
+            return GenerationResult.Failure(ex.Message, "Exception");
         }
-
-        stopwatch.Stop();
-        result.Duration = stopwatch.Elapsed;
-
-        return result;
+        finally
+        {
+            stopwatch.Stop();
+        }
     }
 
-    private async Task<string> DownloadImageAsync(string imageUrl, string prompt)
+    private async Task<string> DownloadImageAsync(string imageUrl, CancellationToken cancellationToken = default)
     {
         var config = _configManager.GetConfig();
         Directory.CreateDirectory(config.OutputDirectory);
@@ -99,14 +107,15 @@ public class OpenAiImageGenerator : IImageGenerator
         var fileName = $"{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.png";
         var filePath = Path.Combine(config.OutputDirectory, fileName);
 
-        using var httpClient = new HttpClient();
-        var imageBytes = await httpClient.GetByteArrayAsync(imageUrl);
-        await File.WriteAllBytesAsync(filePath, imageBytes);
+        var client = _httpClientFactory.CreateClient("OpenAi");
+        var imageBytes = await client.GetByteArrayAsync(imageUrl, cancellationToken);
+
+        await File.WriteAllBytesAsync(filePath, imageBytes, cancellationToken);
 
         return filePath;
     }
 
-    public async Task<bool> IsAvailableAsync()
+    public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -114,11 +123,14 @@ public class OpenAiImageGenerator : IImageGenerator
             if (string.IsNullOrEmpty(config.ApiKey))
                 return false;
 
-            // Простой пинг-запрос
-            var request = new HttpRequestMessage(HttpMethod.Head, config.ServerUrl);
+            var client = _httpClientFactory.CreateClient("OpenAi");
+            using var request = new HttpRequestMessage(HttpMethod.Get, config.ServerUrl);
             request.Headers.Add("Authorization", $"Bearer {config.ApiKey}");
-            var response = await _httpClient.SendAsync(request);
-            return response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed;
+
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            return response.IsSuccessStatusCode
+                || response.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed
+                || response.StatusCode == System.Net.HttpStatusCode.BadRequest;
         }
         catch
         {

@@ -24,6 +24,8 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
     private readonly IAccountStorage _accountStorage;
     private readonly ILogger<ChatGptImageGenerator> _logger;
     private readonly string _outputDirectory;
+    private readonly bool _headless;
+    private readonly SemaphoreSlim _driverLock = new(1, 1);
     private ChromeDriver? _driver;
     private WebDriverWait? _wait;
     private ChatGptAccount? _currentAccount;
@@ -205,82 +207,95 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         _accountStorage = accountStorage;
         _logger = logger;
         _outputDirectory = outputDirectory;
+        _headless = headless;
 
-        LaunchDriver(headless);
+        LaunchDriver();
     }
 
-    public async Task<GenerationResult> GenerateImageAsync(GenerationRequest request)
+    public async Task<GenerationResult> GenerateImageAsync(GenerationRequest request, CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
         var lastException = (Exception?)null;
 
-        for (var attempt = 0; attempt < MaxAccountSwitchAttempts; attempt++)
+        await _driverLock.WaitAsync(cancellationToken);
+        try
         {
-            _currentAccount = await _accountStorage.GetNextAvailableAccountAsync();
-
-            if (_currentAccount == null)
+            for (var attempt = 0; attempt < MaxAccountSwitchAttempts; attempt++)
             {
-                _logger.LogError("No available ChatGPT accounts");
-                return GenerationResult.Failure(
-                    "Нет доступных аккаунтов ChatGPT. Добавьте учетные записи в chatgpt_accounts.json",
-                    "NoAccounts");
-            }
+                cancellationToken.ThrowIfCancellationRequested();
 
-            _logger.LogInformation("Using account: {Email} (attempt {Attempt})",
-                _currentAccount.Email, attempt + 1);
+                _currentAccount = await _accountStorage.GetNextAvailableAccountAsync();
 
-            try
-            {
-                await LoginToChatGptAsync();
-                var result = await SendPromptAndWaitForImageAsync(request.Prompt);
-
-                if (result.IsSuccess)
+                if (_currentAccount == null)
                 {
-                    await _accountStorage.MarkAccountUsedAsync(_currentAccount);
-                    stopwatch.Stop();
+                    _logger.LogError("No available ChatGPT accounts");
+                    return GenerationResult.Failure(
+                        "Нет доступных аккаунтов ChatGPT. Добавьте учетные записи в chatgpt_accounts.json",
+                        "NoAccounts");
+                }
+
+                _logger.LogInformation("Using account: {Email} (attempt {Attempt})",
+                    _currentAccount.Email, attempt + 1);
+
+                try
+                {
+                    await LoginToChatGptAsync(cancellationToken);
+                    var result = await SendPromptAndWaitForImageAsync(request.Prompt, cancellationToken);
+
+                    if (result.IsSuccess)
+                    {
+                        await _accountStorage.MarkAccountUsedAsync(_currentAccount);
+                        result.Duration = stopwatch.Elapsed;
+                        _logger.LogInformation("Image generated successfully with account {Email} in {Duration}",
+                            _currentAccount.Email, stopwatch.Elapsed);
+                        return result;
+                    }
+
+                    if (result.ErrorType == "LimitReached")
+                    {
+                        _logger.LogWarning("Limit reached for account {Email}, switching...", _currentAccount.Email);
+                        await _accountStorage.MarkAccountLimitReachedAsync(_currentAccount);
+                        NavigateToNewChat();
+                        continue;
+                    }
+
+                    if (result.ErrorType == "ProhibitedContent" || result.ErrorType == "ContentPolicyViolation")
+                    {
+                        result.Duration = stopwatch.Elapsed;
+                        return result;
+                    }
+
+                    if (result.ErrorType == "Timeout" && attempt < MaxAccountSwitchAttempts - 1)
+                    {
+                        _logger.LogWarning("Timeout on account {Email}, retrying with next account...", _currentAccount.Email);
+                        NavigateToNewChat();
+                        continue;
+                    }
+
                     result.Duration = stopwatch.Elapsed;
-                    _logger.LogInformation("Image generated successfully with account {Email} in {Duration}",
-                        _currentAccount.Email, stopwatch.Elapsed);
                     return result;
                 }
-
-                if (result.ErrorType == "LimitReached")
+                catch (OperationCanceledException)
                 {
-                    _logger.LogWarning("Limit reached for account {Email}, switching...", _currentAccount.Email);
-                    await _accountStorage.MarkAccountLimitReachedAsync(_currentAccount);
-                    NavigateToNewChat();
-                    continue;
+                    _logger.LogWarning("Image generation cancelled for account {Email}", _currentAccount.Email);
+                    return GenerationResult.Failure("Генерация отменена", "Cancelled");
                 }
-
-                if (result.ErrorType == "ProhibitedContent" || result.ErrorType == "ContentPolicyViolation")
+                catch (Exception ex)
                 {
-                    stopwatch.Stop();
-                    result.Duration = stopwatch.Elapsed;
-                    return result;
-                }
+                    lastException = ex;
+                    _logger.LogError(ex, "Error generating image with account {Email}", _currentAccount.Email);
 
-                if (result.ErrorType == "Timeout" && attempt < MaxAccountSwitchAttempts - 1)
-                {
-                    _logger.LogWarning("Timeout on account {Email}, retrying with next account...", _currentAccount.Email);
-                    NavigateToNewChat();
-                    continue;
-                }
-
-                stopwatch.Stop();
-                result.Duration = stopwatch.Elapsed;
-                return result;
-            }
-            catch (Exception ex)
-            {
-                lastException = ex;
-                _logger.LogError(ex, "Error generating image with account {Email}", _currentAccount.Email);
-
-                if (attempt < MaxAccountSwitchAttempts - 1)
-                {
-                    _logger.LogInformation("Retrying with next account...");
-                    RestartDriver();
+                    if (attempt < MaxAccountSwitchAttempts - 1)
+                    {
+                        _logger.LogInformation("Retrying with next account...");
+                        RestartDriver();
+                    }
                 }
             }
+        }
+        finally
+        {
+            _driverLock.Release();
         }
 
         stopwatch.Stop();
@@ -290,24 +305,32 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
             "MaxAttemptsReached");
     }
 
-    public Task<bool> IsAvailableAsync()
+    public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
     {
+        await _driverLock.WaitAsync(cancellationToken);
         try
         {
-            if (_driver == null) return Task.FromResult(false);
-            NavigateToUrl("https://chatgpt.com");
-            return Task.FromResult(true);
+            if (_driver == null) return false;
+
+            var url = _driver.Url;
+            return !string.IsNullOrEmpty(url);
         }
         catch
         {
-            return Task.FromResult(false);
+            return false;
+        }
+        finally
+        {
+            _driverLock.Release();
         }
     }
 
-    private async Task LoginToChatGptAsync()
+    private async Task LoginToChatGptAsync(CancellationToken cancellationToken = default)
     {
         if (_driver == null)
             throw new InvalidOperationException("Driver is not initialized");
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         NavigateToUrl("https://chatgpt.com/auth/login");
 
@@ -317,6 +340,8 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
             if (TryRestoreSession(cookiesJson))
                 return;
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         await LoginWithCredentialsAsync();
 
@@ -525,13 +550,14 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         }
     }
 
-    private async Task<GenerationResult> SendPromptAndWaitForImageAsync(string prompt)
+    private async Task<GenerationResult> SendPromptAndWaitForImageAsync(string prompt, CancellationToken cancellationToken = default)
     {
         if (_driver == null)
             return GenerationResult.Failure("Driver not initialized", "Exception");
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             EnsureOnChatPage();
             Thread.Sleep(2000);
 
@@ -583,7 +609,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
             }
 
             _logger.LogInformation("Prompt sent, waiting for image generation...");
-            return await WaitForGeneratedImageAsync();
+            return await WaitForGeneratedImageAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -592,13 +618,15 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         }
     }
 
-    private async Task<GenerationResult> WaitForGeneratedImageAsync()
+    private async Task<GenerationResult> WaitForGeneratedImageAsync(CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
         var timeout = TimeSpan.FromSeconds(DefaultTimeoutSeconds);
 
         while (DateTime.UtcNow - startTime < timeout)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 var pageText = _driver?.PageSource ?? "";
@@ -631,7 +659,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
                     continue;
                 }
 
-                var imageResult = ExtractImageFromPage();
+                var imageResult = await ExtractImageFromPageAsync();
                 if (imageResult != null)
                 {
                     return imageResult;
@@ -702,7 +730,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
             "Превышено время ожидания генерации изображения", "Timeout");
     }
 
-    private GenerationResult? ExtractImageFromPage()
+    private async Task<GenerationResult?> ExtractImageFromPageAsync()
     {
         if (_driver == null) return null;
 
@@ -718,7 +746,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
                         var src = img.GetAttribute("src");
                         if (string.IsNullOrEmpty(src)) continue;
 
-                        if (src.StartsWith("data:image"))
+                        if (src.StartsWith("https://chatgpt.com/backend-api/estuary/content"))
                         {
                             var base64Data = src[(src.IndexOf(",") + 1)..];
                             var imageData = Convert.FromBase64String(base64Data);
@@ -729,7 +757,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
 
                         if (src.Contains("oaidalleapiprodscus") || src.Contains("chatgpt") && src.EndsWith(".png"))
                         {
-                            var outputPath = DownloadAndSaveImage(src);
+                            var outputPath = await DownloadAndSaveImageAsync(src);
                             if (outputPath != null)
                             {
                                 _logger.LogInformation("Image downloaded from {Url}", src);
@@ -758,18 +786,17 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
                     var src = img.GetAttribute("src");
                     if (string.IsNullOrEmpty(src)) continue;
 
-                    if (src.StartsWith("data:image"))
+                    if (src.StartsWith("https://chatgpt.com/backend-api/estuary/content"))
                     {
-                        var base64Data = src[(src.IndexOf(",") + 1)..];
-                        var imageData = Convert.FromBase64String(base64Data);
-                        var outputPath = SaveImageToFile(imageData);
+                        var imageBytes = await DownloadImageAsync(src);
+                        var outputPath = SaveImageToFile(imageBytes);
                         _logger.LogInformation("Image extracted from data URI (fallback), saved to {Path}", outputPath);
                         return GenerationResult.Success(outputPath);
                     }
 
                     if (src.Contains("oaidalleapiprodscus"))
                     {
-                        var outputPath = DownloadAndSaveImage(src);
+                        var outputPath = await DownloadAndSaveImageAsync(src);
                         if (outputPath != null)
                             return GenerationResult.Success(outputPath);
                     }
@@ -802,12 +829,36 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         return filePath;
     }
 
-    private string? DownloadAndSaveImage(string url)
+    private async Task<byte[]> DownloadImageAsync(string url)
+    {
+        if (_driver == null)
+            throw new InvalidOperationException("Driver is not initialized");
+
+        var script = @"
+            return await fetch(arguments[0], { credentials: 'include' })
+                .then(response => response.blob())
+                .then(blob => new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                }));
+        ";
+
+        var result = _driver.ExecuteScript(script, url) as string;
+        if (string.IsNullOrEmpty(result))
+            throw new InvalidOperationException("Failed to download image via driver");
+
+        var base64 = result[(result.IndexOf(",") + 1)..];
+        return Convert.FromBase64String(base64);
+    }
+
+    private async Task<string?> DownloadAndSaveImageAsync(string url)
     {
         try
         {
             using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-            var imageData = httpClient.GetByteArrayAsync(url).GetAwaiter().GetResult();
+            var imageData = await httpClient.GetByteArrayAsync(url);
 
             if (imageData.Length == 0 || imageData.Length > MaxImageBytes)
             {
@@ -871,19 +922,16 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         }
     }
 
-    private void LaunchDriver(bool headless = false)
+    private void LaunchDriver()
     {
         var userDataDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "chrome_profile");
 
         KillOrphanChromeProcesses(userDataDir);
 
-        if (Directory.Exists(userDataDir))
-        {
-            try { Directory.Delete(userDataDir, true); } catch { }
-        }
-        Directory.CreateDirectory(userDataDir);
+        if (!Directory.Exists(userDataDir))
+            Directory.CreateDirectory(userDataDir);
 
-        var options = CreateChromeOptions(headless);
+        var options = CreateChromeOptions(_headless);
 
         var driverExecutablePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "chromedriver.exe");
 

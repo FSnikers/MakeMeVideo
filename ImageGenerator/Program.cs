@@ -26,7 +26,7 @@ while (true)
     switch (Console.ReadLine()?.Trim())
     {
         case "1":
-            await repository.LoadPromptsFromFileAsync();
+            await repository.LoadPromptsFromFileAsync(generator, configManager);
             break;
         case "2":
             await repository.AddNewPromptAsync();

@@ -3,16 +3,19 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using ImageGenerator.Interfaces;
 using ImageGenerator.Models;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace ImageGenerator.Startup;
 
 public static class PromptExtensions
 {
-    public static async Task LoadPromptsFromFileAsync(this IPromptRepository repository)
+    public static async Task LoadPromptsFromFileAsync(
+        this IPromptRepository repository,
+        IImageGenerator? generator = null,
+        IConfigManager? configManager = null)
     {
         var promptsFile = "prompts.json";
         if (!File.Exists(promptsFile))
@@ -33,20 +36,20 @@ public static class PromptExtensions
         await repository.AddPromptsAsync(prompts);
         Console.WriteLine($"Загружено {prompts.Count} промптов в репозиторий");
 
+        if (generator == null) return;
+
         Console.Write("\nЗапустить генерацию? (y/n): ");
-        if (Console.ReadLine()?.ToLower() == "y")
+        if (Console.ReadLine()?.ToLower() != "y") return;
+
+        using var cts = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, e) =>
         {
-            var services = new ServiceCollection();
-            services.AddImageGenerator();
+            e.Cancel = true;
+            cts.Cancel();
+            Console.WriteLine("\nОтмена генерации...");
+        };
 
-            var sp = services.BuildServiceProvider();
-            var generator = sp.GetRequiredService<IImageGenerator>();
-            var configManager = sp.GetRequiredService<IConfigManager>();
-
-            await generator.GenerateAllPendingPromptsAsync(repository, configManager);
-
-            if (sp is IDisposable d) d.Dispose();
-        }
+        await generator.GenerateAllPendingPromptsAsync(repository, configManager!, cts.Token);
     }
 
     public static async Task AddNewPromptAsync(this IPromptRepository repository)

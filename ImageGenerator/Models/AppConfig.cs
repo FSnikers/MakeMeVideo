@@ -42,4 +42,7 @@ public class AppConfig
 
     [JsonPropertyName("RetryDelaySeconds")]
     public int RetryDelaySeconds { get; set; } = 5;
+
+    [JsonPropertyName("Headless")]
+    public bool Headless { get; set; } = false;
 }
