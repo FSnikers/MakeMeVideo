@@ -7,46 +7,20 @@
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
+  <component name="CMakeProjectFlavorService">
+    <option name="flavorId" value="CMakePlainProjectFlavor" />
+  </component>
+  <component name="CMakeSettings">
+    <configurations />
+  </component>
   <component name="ChangeListManager">
     <list default="true" id="e133d307-cbdd-4f2b-921d-da787c4beab3" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/MakeMeVideo.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/amplicode-jpa.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/ImageGenerator.csproj" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/Interfaces/IConfigManager.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/Interfaces/IImageGenerator.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/Interfaces/IPromptRepository.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/Models/AppConfig.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/Models/GenerationParameters.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/Models/GenerationRequest.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/Models/GenerationResult.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/Models/PromptData.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/Program.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/Services/ConfigManager.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/Services/FilePromptRepository.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/Services/OpenAiImageGenerator.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/appsettings.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/obj/Debug/net8.0/.NETCoreApp,Version=v8.0.AssemblyAttributes.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/obj/Debug/net8.0/ImageGenerator.AssemblyInfo.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/obj/Debug/net8.0/ImageGenerator.AssemblyInfoInputs.cache" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/obj/Debug/net8.0/ImageGenerator.GeneratedMSBuildEditorConfig.editorconfig" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/obj/Debug/net8.0/ImageGenerator.GlobalUsings.g.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/obj/Debug/net8.0/ImageGenerator.assets.cache" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/obj/Debug/net8.0/ImageGenerator.csproj.AssemblyReference.cache" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/obj/ImageGenerator.csproj.nuget.dgspec.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/obj/ImageGenerator.csproj.nuget.g.props" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/obj/ImageGenerator.csproj.nuget.g.targets" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/obj/project.assets.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/obj/project.nuget.cache" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/obj/project.packagespec.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/obj/rider.project.restore.info" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageGenerator/prompts.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChatGPTImageOrchestrator/.idea/projectSettingsUpdater.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChatGPTImageOrchestrator/.idea/projectSettingsUpdater.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ImageGenerator/Models/ChatGptAccount.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ImageGenerator/Services/ChatGptImageGenerator.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ImageGenerator/Services/IAccountStorage.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ImageGenerator/Services/JsonAccountStorage.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChatGPTImageOrchestrator/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChatGPTImageOrchestrator/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChatGPTImageOrchestrator.sln" beforeDir="false" afterPath="$PROJECT_DIR$/ChatGPTImageOrchestrator.sln" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ImageGenerator/Models/GenerationRequest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ImageGenerator/Models/GenerationRequest.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -57,7 +31,7 @@
     <option name="autoShow" value="false" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="20" />
+    <option name="cachedIndexableFilesCount" value="24" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -84,6 +58,65 @@
     <urls />
   </component>
   <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.6158519499549286" />
+      <entry key="MS500" value="5.490704980671595" />
+      <entry key="S2" value="11.104152885812823" />
+      <entry key="S5" value="14.968578534401" />
+      <entry key="S10" value="17.461112354115407" />
+      <entry key="S30" value="20.854866826452582" />
+      <entry key="S60" value="25.192810803409635" />
+      <entry key="M2" value="41.48226882004055" />
+      <entry key="M5" value="84.48001640207015" />
+      <entry key="M10" value="115.77912162190336" />
+      <entry key="M15" value="129.58045623762393" />
+      <entry key="M30" value="145.5349572763194" />
+      <entry key="H1" value="154.42892052511186" />
+      <entry key="H2" value="159.12649494793212" />
+      <entry key="H4" value="161.54082476024368" />
+      <entry key="D1" value="163.58698582340935" />
+      <entry key="W1" value="163.94092029933324" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="0.0" />
+      <entry key="S10" value="0.0" />
+      <entry key="S30" value="0.0" />
+      <entry key="S60" value="0.0" />
+      <entry key="M2" value="0.0" />
+      <entry key="M5" value="0.0" />
+      <entry key="M10" value="0.0" />
+      <entry key="M15" value="0.0" />
+      <entry key="M30" value="0.0" />
+      <entry key="H1" value="0.0" />
+      <entry key="H2" value="0.0" />
+      <entry key="H4" value="0.0" />
+      <entry key="D1" value="0.0" />
+      <entry key="W1" value="0.0" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="1.540567254061866" />
+      <entry key="MS500" value="5.434575637796781" />
+      <entry key="S2" value="11.075092348167928" />
+      <entry key="S5" value="14.952560546200678" />
+      <entry key="S10" value="17.45164153784889" />
+      <entry key="S30" value="20.85104298811554" />
+      <entry key="S60" value="25.190472293883435" />
+      <entry key="M2" value="41.4802607396545" />
+      <entry key="M5" value="84.47828319525748" />
+      <entry key="M10" value="115.77789881445351" />
+      <entry key="M15" value="129.57953288491802" />
+      <entry key="M30" value="145.53443169418864" />
+      <entry key="H1" value="154.42863958477503" />
+      <entry key="H2" value="159.12634963483504" />
+      <entry key="H4" value="161.54075085237545" />
+      <entry key="D1" value="163.586973328074" />
+      <entry key="W1" value="163.9409185098947" />
+    </decayedShown>
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 2
 }</component>
@@ -100,6 +133,7 @@
     ".NET Project.ChatGPTImageOrchestrator.Web.executor": "Debug",
     "RunOnceActivity.MCP Project settings loaded": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.cidr.known.project.marker": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
@@ -114,7 +148,7 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "ml.llm.AcpAgentsConfigurable",
+    "settings.editor.selected.configurable": "ml.llm.LLMConfigurable",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -175,7 +209,7 @@
       <workItem from="1781364946702" duration="442000" />
       <workItem from="1781367369929" duration="279000" />
       <workItem from="1781367671240" duration="271000" />
-      <workItem from="1781367969453" duration="132000" />
+      <workItem from="1781367969453" duration="1357000" />
     </task>
     <task id="LOCAL-00001" summary="upd">
       <option name="closed" value="true" />
@@ -217,7 +251,15 @@
       <option name="project" value="LOCAL" />
       <updated>1781365065424</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="upd">
+      <option name="closed" value="true" />
+      <created>1781368275319</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1781368275319</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -228,9 +270,9 @@
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
     <MESSAGE value="add gitignore" />
-    <MESSAGE value="upd" />
     <MESSAGE value="upds" />
-    <option name="LAST_COMMIT_MESSAGE" value="upds" />
+    <MESSAGE value="upd" />
+    <option name="LAST_COMMIT_MESSAGE" value="upd" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

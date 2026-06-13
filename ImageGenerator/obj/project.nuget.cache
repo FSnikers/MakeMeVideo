@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "pWU01urt63E=",
+  "dgSpecHash": "7ibSbKj2SOg=",
   "success": true,
   "projectFilePath": "C:\\Users\\uvev1\\RiderProjects\\MakeMeVideo\\ImageGenerator\\ImageGenerator.csproj",
   "expectedPackageFiles": [
@@ -25,6 +25,9 @@
     "C:\\Users\\uvev1\\.nuget\\packages\\microsoft.extensions.options.configurationextensions\\8.0.0\\microsoft.extensions.options.configurationextensions.8.0.0.nupkg.sha512",
     "C:\\Users\\uvev1\\.nuget\\packages\\microsoft.extensions.primitives\\8.0.0\\microsoft.extensions.primitives.8.0.0.nupkg.sha512",
     "C:\\Users\\uvev1\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512",
+    "C:\\Users\\uvev1\\.nuget\\packages\\selenium.support\\4.18.1\\selenium.support.4.18.1.nupkg.sha512",
+    "C:\\Users\\uvev1\\.nuget\\packages\\selenium.webdriver\\4.18.1\\selenium.webdriver.4.18.1.nupkg.sha512",
+    "C:\\Users\\uvev1\\.nuget\\packages\\selenium.webdriver.chromedriver\\122.0.6261.9400\\selenium.webdriver.chromedriver.122.0.6261.9400.nupkg.sha512",
     "C:\\Users\\uvev1\\.nuget\\packages\\system.diagnostics.diagnosticsource\\8.0.0\\system.diagnostics.diagnosticsource.8.0.0.nupkg.sha512",
     "C:\\Users\\uvev1\\.nuget\\packages\\system.text.encodings.web\\8.0.0\\system.text.encodings.web.8.0.0.nupkg.sha512",
     "C:\\Users\\uvev1\\.nuget\\packages\\system.text.json\\8.0.0\\system.text.json.8.0.0.nupkg.sha512",

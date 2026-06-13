@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using ImageGenerator.Interfaces;
@@ -16,9 +17,12 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        Console.WriteLine("=== Генератор изображений через ChatGPT ===\n");
+        Console.WriteLine("=== MakeMeVideo Image Generator ===\n");
 
-        // Настройка DI контейнера
+        var apiType = ReadConfigApiType();
+
+        Console.WriteLine($"Режим: {(apiType == "ChatGPT" ? "ChatGPT (Selenium)" : "OpenAI API")}");
+
         var services = new ServiceCollection();
 
         services.AddLogging(builder =>
@@ -29,50 +33,116 @@ class Program
 
         services.AddSingleton<IConfigManager, ConfigManager>();
         services.AddSingleton<IPromptRepository, FilePromptRepository>();
-        services.AddHttpClient<IImageGenerator, OpenAiImageGenerator>();
+        services.AddSingleton<IAccountStorage, JsonAccountStorage>();
+
+        if (apiType == "ChatGPT")
+        {
+            services.AddSingleton<IImageGenerator>(sp =>
+            {
+                var accountStorage = sp.GetRequiredService<IAccountStorage>();
+                var logger = sp.GetRequiredService<ILogger<ChatGptImageGenerator>>();
+                var config = sp.GetRequiredService<IConfigManager>().GetConfig();
+                return new ChatGptImageGenerator(accountStorage, logger, config.OutputDirectory, headless: false);
+            });
+        }
+        else
+        {
+            services.AddHttpClient<IImageGenerator, OpenAiImageGenerator>();
+        }
 
         var serviceProvider = services.BuildServiceProvider();
 
         var generator = serviceProvider.GetRequiredService<IImageGenerator>();
         var repository = serviceProvider.GetRequiredService<IPromptRepository>();
-        var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
         var configManager = serviceProvider.GetRequiredService<IConfigManager>();
 
-        // Проверка конфигурации
-        if (!configManager.ValidateConfig())
+        if (apiType != "ChatGPT")
         {
-            Console.WriteLine("Ошибка: Проверьте настройки в appsettings.json");
-            Console.WriteLine("Укажите ApiKey и ServerUrl");
+            if (!configManager.ValidateConfig())
+            {
+                Console.WriteLine("Ошибка: Проверьте настройки в appsettings.json");
+                Console.WriteLine("Укажите ApiKey и ServerUrl");
+                return;
+            }
+        }
+        else
+        {
+            Console.WriteLine("Режим ChatGPT: убедитесь, что Chrome установлен");
+            Console.WriteLine("и аккаунты настроены в chatgpt_accounts.json\n");
+        }
+
+        while (true)
+        {
+            Console.WriteLine("\n--- Главное меню ---");
+            Console.WriteLine("1. Загрузить промпты из prompts.json");
+            Console.WriteLine("2. Добавить новый промпт");
+            Console.WriteLine("3. Запустить генерацию всех ожидающих промптов");
+            Console.WriteLine("4. Запустить одиночную генерацию");
+            Console.WriteLine("5. Выйти");
+            Console.Write("\nВаш выбор: ");
+
+            var choice = Console.ReadLine()?.Trim();
+
+            switch (choice)
+            {
+                case "1":
+                    await LoadPromptsFromFileAsync(repository);
+                    break;
+                case "2":
+                    await AddNewPromptAsync(repository);
+                    break;
+                case "3":
+                    await GenerateAllPendingPromptsAsync(generator, repository, configManager);
+                    break;
+                case "4":
+                    await RunSingleGenerationAsync(generator, configManager);
+                    break;
+                case "5":
+                    Console.WriteLine("Выход...");
+                    return;
+                default:
+                    Console.WriteLine("Неверный выбор");
+                    break;
+            }
+        }
+    }
+
+    static async Task RunSingleGenerationAsync(IImageGenerator generator, IConfigManager configManager)
+    {
+        Console.Write("\nВведите промпт для генерации изображения: ");
+        var promptText = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(promptText))
+        {
+            Console.WriteLine("Промпт не может быть пустым");
             return;
         }
 
-        // Выбор режима работы
-        Console.WriteLine("Выберите режим:");
-        Console.WriteLine("1. Загрузить промпты из prompts.json");
-        Console.WriteLine("2. Добавить новый промпт");
-        Console.WriteLine("3. Запустить генерацию всех ожидающих промптов");
-        Console.Write("\nВаш выбор: ");
-
-        var choice = Console.ReadLine();
-
-        switch (choice)
+        var config = configManager.GetConfig();
+        var request = new GenerationRequest
         {
-            case "1":
-                await LoadPromptsFromFileAsync(repository);
-                break;
-            case "2":
-                await AddNewPromptAsync(repository);
-                break;
-            case "3":
-                await GenerateAllPendingPromptsAsync(generator, repository, configManager);
-                break;
-            default:
-                Console.WriteLine("Неверный выбор");
-                break;
+            Prompt = promptText,
+            Model = config.Model,
+            Width = config.ImageWidth,
+            Height = config.ImageHeight,
+            Quality = config.Quality
+        };
+
+        Console.WriteLine("\nГенерация изображения...\n");
+        var result = await generator.GenerateImageAsync(request);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine($"✅ Изображение сохранено: {result.ImagePath}");
+            if (!string.IsNullOrEmpty(result.RevisedPrompt))
+                Console.WriteLine($"Уточненный промпт: {result.RevisedPrompt}");
+        }
+        else
+        {
+            Console.WriteLine($"❌ Ошибка: {result.ErrorMessage}");
         }
 
-        Console.WriteLine("\nНажмите любую клавишу для выхода...");
-        Console.ReadKey();
+        Console.WriteLine($"Длительность: {result.Duration.TotalSeconds:F1} сек");
     }
 
     static async Task LoadPromptsFromFileAsync(IPromptRepository repository)
@@ -85,7 +155,7 @@ class Program
         }
 
         var json = await File.ReadAllTextAsync(promptsFile);
-        var prompts = System.Text.Json.JsonSerializer.Deserialize<List<PromptData>>(json);
+        var prompts = JsonSerializer.Deserialize<List<PromptData>>(json);
 
         if (prompts != null && prompts.Any())
         {
@@ -99,9 +169,25 @@ class Program
                 services.AddLogging();
                 services.AddSingleton<IConfigManager, ConfigManager>();
                 services.AddSingleton<IPromptRepository, FilePromptRepository>();
-                services.AddHttpClient<IImageGenerator, OpenAiImageGenerator>();
-                var sp = services.BuildServiceProvider();
+                services.AddSingleton<IAccountStorage, JsonAccountStorage>();
 
+                var apiType = ReadConfigApiType();
+                if (apiType == "ChatGPT")
+                {
+                    services.AddSingleton<IImageGenerator>(sp =>
+                    {
+                        var accountStorage = sp.GetRequiredService<IAccountStorage>();
+                        var logger = sp.GetRequiredService<ILogger<ChatGptImageGenerator>>();
+                        var config = sp.GetRequiredService<IConfigManager>().GetConfig();
+                        return new ChatGptImageGenerator(accountStorage, logger, config.OutputDirectory, headless: false);
+                    });
+                }
+                else
+                {
+                    services.AddHttpClient<IImageGenerator, OpenAiImageGenerator>();
+                }
+
+                var sp = services.BuildServiceProvider();
                 var generator = sp.GetRequiredService<IImageGenerator>();
                 var configManager = sp.GetRequiredService<IConfigManager>();
 
@@ -166,11 +252,10 @@ class Program
                     var request = new GenerationRequest
                     {
                         Prompt = prompt.Text,
-                        NegativePrompt = prompt.NegativePrompt,
+                        Model = config.Model,
                         Width = prompt.Parameters?.Width ?? config.ImageWidth,
                         Height = prompt.Parameters?.Height ?? config.ImageHeight,
-                        Quality = prompt.Parameters?.Quality ?? config.Quality,
-                        Model = config.Model
+                        Quality = prompt.Parameters?.Quality ?? config.Quality
                     };
 
                     var result = await generator.GenerateImageAsync(request);
@@ -202,6 +287,24 @@ class Program
         Console.WriteLine("\n✅ Генерация завершена!");
     }
 
+    static string ReadConfigApiType()
+    {
+        try
+        {
+            var json = File.ReadAllText("appsettings.json");
+            var config = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
+            if (config != null && config.TryGetValue("ApiType", out var apiType))
+            {
+                return apiType.GetString() ?? "OpenAI";
+            }
+        }
+        catch
+        {
+        }
+
+        return "OpenAI";
+    }
+
     static void CreateExamplePromptsFile()
     {
         var examplePrompts = new[]
@@ -210,26 +313,24 @@ class Program
             {
                 Id = Guid.NewGuid().ToString(),
                 Text = "A serene landscape with mountains and a lake at sunset, digital art style",
-                NegativePrompt = "blurry, low quality, distorted",
-                Parameters = new GenerationParameters { Width = 1024, Height = 1024, Quality = "standard" }
+                Status = "pending"
             },
             new PromptData
             {
                 Id = Guid.NewGuid().ToString(),
                 Text = "Cyberpunk city street at night with neon lights, anime style, vibrant colors",
-                NegativePrompt = "photorealistic, daytime",
-                Parameters = new GenerationParameters { Width = 1024, Height = 1024, Quality = "standard" }
+                Status = "pending"
             },
             new PromptData
             {
                 Id = Guid.NewGuid().ToString(),
                 Text = "A cute cat wearing a wizard hat, casting a spell, cartoon style",
-                NegativePrompt = "scary, dark",
-                Parameters = new GenerationParameters { Width = 1024, Height = 1024, Quality = "standard" }
+                Status = "pending"
             }
         };
 
-        var json = System.Text.Json.JsonSerializer.Serialize(examplePrompts, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(examplePrompts,
+            new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText("prompts.json", json);
         Console.WriteLine("Создан пример prompts.json");
     }
