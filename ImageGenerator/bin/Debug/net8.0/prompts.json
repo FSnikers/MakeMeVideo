@@ -1,0 +1,14 @@
+[
+  {
+    "id": "example-1",
+    "text": "A beautiful sunset over the ocean with dolphins jumping, realistic style",
+    "negativePrompt": "blurry, low quality",
+    "status": "pending",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "parameters": {
+      "width": 1024,
+      "height": 1024,
+      "quality": "standard"
+    }
+  }
+]
