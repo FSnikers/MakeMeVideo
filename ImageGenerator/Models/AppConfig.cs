@@ -8,7 +8,7 @@ namespace ImageGenerator.Models;
 public class AppConfig
 {
     [JsonPropertyName("ApiType")]
-    public string ApiType { get; set; } = "OpenAI";
+    public string ApiType { get; set; } = "ChatGPT";
 
     [JsonPropertyName("ApiKey")]
     public string ApiKey { get; set; } = "";

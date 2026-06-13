@@ -15,6 +15,7 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Interactions;
 using OpenQA.Selenium.Support.UI;
+using SeleniumUndetectedChromeDriver;
 
 namespace ImageGenerator.Services;
 
@@ -293,7 +294,8 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
     {
         try
         {
-            _driver?.Navigate().GoToUrl("https://chatgpt.com");
+            if (_driver == null) return Task.FromResult(false);
+            NavigateToUrl("https://chatgpt.com");
             return Task.FromResult(true);
         }
         catch
@@ -307,8 +309,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         if (_driver == null)
             throw new InvalidOperationException("Driver is not initialized");
 
-        _driver.Navigate().GoToUrl("https://chatgpt.com/auth/login");
-        WaitForPageLoad();
+        NavigateToUrl("https://chatgpt.com/auth/login");
 
         var cookiesJson = await _accountStorage.LoadCookiesAsync(_currentAccount!.Email);
         if (!string.IsNullOrEmpty(cookiesJson))
@@ -339,7 +340,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
             if (cookieDataList == null || cookieDataList.Count == 0)
                 return false;
 
-            _driver.Navigate().GoToUrl("https://chatgpt.com");
+            NavigateToUrl("https://chatgpt.com");
 
             foreach (var cd in cookieDataList)
             {
@@ -356,6 +357,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
 
             _driver.Navigate().Refresh();
             WaitForPageLoad();
+            BypassCloudflareIfNeeded("https://chatgpt.com");
             Thread.Sleep(3000);
 
             if (_driver.Url.Contains("chatgpt.com") &&
@@ -385,8 +387,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
 
         try
         {
-            _driver.Navigate().GoToUrl("https://chatgpt.com/auth/login");
-            WaitForPageLoad();
+            NavigateToUrl("https://chatgpt.com/auth/login");
             RandomDelay(1500, 3000);
 
             var emailInput = FindElementWithFallback(LoginInputSelectors, ShortTimeoutSeconds);
@@ -443,8 +444,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
     {
         if (_driver == null || _currentAccount == null) return;
 
-        _driver.Navigate().GoToUrl("https://chatgpt.com/auth/login");
-        WaitForPageLoad();
+        NavigateToUrl("https://chatgpt.com/auth/login");
         Thread.Sleep(3000);
 
         var allInputs = _driver.FindElements(By.TagName("input")).ToList();
@@ -538,9 +538,9 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
             var textarea = FindElementWithFallback(PromptTextareaSelectors, ShortTimeoutSeconds);
             if (textarea == null)
             {
-                _logger.LogWarning("Could not find prompt textarea, trying JavaScript injection");
-                _driver.ExecuteScript("window.location.href = 'https://chatgpt.com/';");
-                Thread.Sleep(3000);
+                _logger.LogWarning("Could not find prompt textarea, navigating directly");
+                NavigateToUrl("https://chatgpt.com/");
+                Thread.Sleep(2000);
                 textarea = FindElementWithFallback(PromptTextareaSelectors, ShortTimeoutSeconds);
 
                 if (textarea == null)
@@ -853,8 +853,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         var currentUrl = _driver.Url.ToLowerInvariant();
         if (!currentUrl.Contains("chatgpt.com") || currentUrl.Contains("auth") || currentUrl.Contains("login"))
         {
-            _driver.Navigate().GoToUrl("https://chatgpt.com/");
-            WaitForPageLoad();
+            NavigateToUrl("https://chatgpt.com/");
             Thread.Sleep(2000);
         }
     }
@@ -863,8 +862,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
     {
         try
         {
-            _driver?.Navigate().GoToUrl("https://chatgpt.com/");
-            WaitForPageLoad();
+            NavigateToUrl("https://chatgpt.com/");
             Thread.Sleep(2000);
         }
         catch
@@ -875,20 +873,51 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
 
     private void LaunchDriver(bool headless = false)
     {
+        var userDataDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "chrome_profile");
+
+        KillOrphanChromeProcesses(userDataDir);
+
+        if (Directory.Exists(userDataDir))
+        {
+            try { Directory.Delete(userDataDir, true); } catch { }
+        }
+        Directory.CreateDirectory(userDataDir);
+
         var options = CreateChromeOptions(headless);
 
-        var service = ChromeDriverService.CreateDefaultService();
-        service.HideCommandPromptWindow = true;
-        service.SuppressInitialDiagnosticInformation = true;
+        var driverExecutablePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "chromedriver.exe");
 
-        _driver = new ChromeDriver(service, options);
+        _driver = UndetectedChromeDriver.Create(options, driverExecutablePath: driverExecutablePath, commandTimeout: TimeSpan.FromSeconds(90), configureService: service =>
+        {
+            service.HideCommandPromptWindow = true;
+            service.SuppressInitialDiagnosticInformation = true;
+        });
         _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(DefaultTimeoutSeconds))
         {
             PollingInterval = TimeSpan.FromMilliseconds(PollingIntervalMs)
         };
 
-        _driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(60);
+        _driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(90);
         ApplyAntiDetectionMeasures();
+    }
+
+    private static void KillOrphanChromeProcesses(string userDataDir)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "powershell",
+                Arguments = $"-NoProfile -Command \"Get-CimInstance Win32_Process -Filter \\\"Name = 'chrome.exe' AND CommandLine LIKE '%{userDataDir.Replace("\\", "\\\\")}%'\\\" | ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force }}\"",
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            };
+            using var process = Process.Start(psi);
+            process?.WaitForExit(10000);
+        }
+        catch { }
     }
 
     private static ChromeOptions CreateChromeOptions(bool headless)
@@ -904,22 +933,20 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         options.AddArgument($"--user-agent={userAgent}");
 
         options.AddArgument("--disable-blink-features=AutomationControlled");
-        options.AddArgument("--disable-dev-shm-usage");
-        options.AddArgument("--no-sandbox");
         options.AddArgument("--disable-notifications");
         options.AddArgument("--lang=en-US");
         options.AddArgument("--disable-renderer-backgrounding");
         options.AddArgument("--disable-background-timer-throttling");
         options.AddArgument("--disable-backgrounding-occluded-windows");
-
-        options.AddExcludedArgument("enable-automation");
-        options.AddAdditionalOption("useAutomationExtension", false);
+        options.AddArgument("--remote-allow-origins=*");
 
         options.AddUserProfilePreference("credentials_enable_service", false);
         options.AddUserProfilePreference("profile.password_manager_enabled", false);
-        options.AddUserProfilePreference("excludeSwitches", new[] { "enable-automation" });
         options.AddUserProfilePreference("enable_do_not_track", true);
         options.AddUserProfilePreference("download_restrictions", 3);
+
+        var userDataDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "chrome_profile");
+        options.AddArgument($"--user-data-dir={userDataDir}");
 
         if (headless)
             options.AddArgument("--headless=new");
@@ -968,7 +995,6 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
 
         _driver.ExecuteScript(script);
 
-        _driver.ExecuteScript(script);
     }
 
     private void RestartDriver()
@@ -996,6 +1022,74 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         catch
         {
         }
+    }
+
+    private void NavigateToUrl(string url)
+    {
+        if (_driver == null) return;
+        _driver.Navigate().GoToUrl(url);
+        WaitForPageLoad();
+        BypassCloudflareIfNeeded(url);
+    }
+
+    private void BypassCloudflareIfNeeded(string targetUrl)
+    {
+        if (_driver == null) return;
+
+        for (var attempt = 0; attempt < 60; attempt++)
+        {
+            try
+            {
+                var currentUrl = _driver.Url.ToLowerInvariant();
+                var title = _driver.Title.ToLowerInvariant();
+                var bodyText = _driver.FindElement(By.TagName("body")).Text.ToLowerInvariant();
+                var pageSource = _driver.PageSource.ToLowerInvariant();
+
+                var isCloudflare =
+                    currentUrl.Contains("cloudflare") ||
+                    currentUrl.Contains("challenge") ||
+                    title.Contains("cloudflare") ||
+                    title.Contains("just a moment") ||
+                    bodyText.Contains("checking your browser") ||
+                    bodyText.Contains("verifying you are human") ||
+                    bodyText.Contains("enable javascript") ||
+                    bodyText.Contains("cloudflare") ||
+                    pageSource.Contains("cf-challenge") ||
+                    pageSource.Contains("cf-browser-verification") ||
+                    pageSource.Contains("_cf_chl_opt") ||
+                    pageSource.Contains("__cf_chl_f_tk") ||
+                    pageSource.Contains("cf-please-wait");
+
+                if (!isCloudflare)
+                {
+                    var hasCfCookie = _driver.Manage().Cookies.AllCookies
+                        .Any(c => c.Name.StartsWith("cf_clearance", StringComparison.OrdinalIgnoreCase));
+
+                    if (hasCfCookie || !bodyText.Contains("checking your browser"))
+                        return;
+                }
+
+                if (attempt == 0)
+                {
+                    Console.WriteLine("\n⚠️  Cloudflare блокирует доступ к ChatGPT.");
+                    Console.WriteLine("⏳ Пожалуйста, решите капчу в открывшемся окне браузера...");
+                    Console.WriteLine("🔍 После решения капчи страница загрузится автоматически.\n");
+                }
+
+                Thread.Sleep(2000);
+
+                if (attempt > 0 && attempt % 10 == 0)
+                {
+                    Console.WriteLine($"⏳ Ожидание решения Cloudflare... ({attempt * 2} сек)");
+                }
+            }
+            catch
+            {
+                Thread.Sleep(1000);
+            }
+        }
+
+        _logger.LogWarning("Cloudflare challenge did not pass after ~120 seconds");
     }
 
     private IWebElement? FindElementWithFallback(string[] selectors, int timeoutSeconds)

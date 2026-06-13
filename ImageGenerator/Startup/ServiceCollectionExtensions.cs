@@ -74,9 +74,9 @@ public static class ServiceCollectionExtensions
             var json = File.ReadAllText("appsettings.json");
             var config = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(json);
             if (config != null && config.TryGetValue("ApiType", out var apiType))
-                return apiType.GetString() ?? "OpenAI";
+                return apiType.GetString() ?? "ChatGPT";
         }
         catch { }
-        return "OpenAI";
+        return "ChatGPT";
     }
 }
