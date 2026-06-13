@@ -1,4 +1,3 @@
-using System.IO;
 using System.Text.Json;
 using ImageGenerator.Interfaces;
 using ImageGenerator.Models;

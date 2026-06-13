@@ -1,10 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
 using ImageGenerator.Interfaces;
-using ImageGenerator.Models;
 using ImageGenerator.Services;
+using ImageGenerator.Services.Browser;
+using ImageGenerator.Services.ChatGPT;
+using ImageGenerator.Services.ChatGPT.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -26,6 +24,27 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPromptRepository, FilePromptRepository>();
         services.AddSingleton<IAccountStorage, JsonAccountStorage>();
 
+        services.AddSingleton<IBrowserDriverFactory>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfigManager>().GetConfig();
+            var factory = new BrowserDriverFactory(sp.GetRequiredService<ILogger<BrowserDriverFactory>>());
+            factory.CreateDriver(config.Headless);
+            return factory;
+        });
+
+        services.AddTransient<IChatGptLoginService, ChatGptLoginService>();
+        services.AddTransient<IChatGptPageInteractor, ChatGptPageInteractor>();
+        services.AddTransient<IChatGptErrorAnalyzer, ChatGptErrorAnalyzer>();
+        services.AddTransient<IChatGptImageExtractorHelper>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfigManager>().GetConfig();
+            return new ChatGptImageExtractorHelper(
+                sp.GetRequiredService<IBrowserDriverFactory>(),
+                sp.GetRequiredService<ILogger<ChatGptImageExtractorHelper>>(),
+                config.OutputDirectory);
+        });
+        services.AddTransient<IChatGptImageExtractor, ChatGptImageExtractor>();
+
         // Register HttpClient factory for internal use (downloads)
         services.AddHttpClient("Downloader")
             .ConfigureHttpClient(client =>
@@ -37,13 +56,7 @@ public static class ServiceCollectionExtensions
 
         if (apiType == "ChatGPT")
         {
-            services.AddSingleton<IImageGenerator>(sp =>
-            {
-                var accountStorage = sp.GetRequiredService<IAccountStorage>();
-                var logger = sp.GetRequiredService<ILogger<ChatGptImageGenerator>>();
-                var config = sp.GetRequiredService<IConfigManager>().GetConfig();
-                return new ChatGptImageGenerator(accountStorage, logger, config.OutputDirectory, config.Headless);
-            });
+            services.AddSingleton<IImageGenerator, ChatGptImageGenerator>();
         }
         else
         {

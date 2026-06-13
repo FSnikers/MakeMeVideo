@@ -1,7 +1,8 @@
-using System;
 using ImageGenerator.Interfaces;
 using ImageGenerator.Startup;
 using Microsoft.Extensions.DependencyInjection;
+
+ProcessKiller.KillChromeDrivers();
 
 var services = new ServiceCollection();
 services.AddImageGenerator();

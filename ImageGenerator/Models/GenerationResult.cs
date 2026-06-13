@@ -1,5 +1,3 @@
-using System;
-
 namespace ImageGenerator.Models;
 
 public class GenerationResult

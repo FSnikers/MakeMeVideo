@@ -1,7 +1,6 @@
-﻿using System.Threading.Tasks;
 using ImageGenerator.Models;
 
-namespace ImageGenerator.Services;
+namespace ImageGenerator.Interfaces;
 
 public interface IAccountStorage
 {

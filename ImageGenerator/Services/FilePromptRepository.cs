@@ -1,11 +1,5 @@
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using System.Text.Json;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using ImageGenerator.Interfaces;
+using System.Text.Json;
+using ImageGenerator.Interfaces;
 using ImageGenerator.Models;
 using Microsoft.Extensions.Logging;
 
