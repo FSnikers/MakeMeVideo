@@ -7,16 +7,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e133d307-cbdd-4f2b-921d-da787c4beab3" name="Changes" comment="add gitignore">
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.ChatGPTImageOrchestrator/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChatGPTImageOrchestrator.sln" beforeDir="false" afterPath="$PROJECT_DIR$/ChatGPTImageOrchestrator.sln" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ChatGPTImageOrchestrator.Infrastructure/ChatGPTImageOrchestrator.Infrastructure.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/src/ChatGPTImageOrchestrator.Infrastructure/ChatGPTImageOrchestrator.Infrastructure.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ChatGPTImageOrchestrator.Infrastructure/Persistence/AppDbContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/src/ChatGPTImageOrchestrator.Infrastructure/Persistence/AppDbContext.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ChatGPTImageOrchestrator.Web/ChatGPTImageOrchestrator.Web.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/src/ChatGPTImageOrchestrator.Web/ChatGPTImageOrchestrator.Web.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ChatGPTImageOrchestrator.Web/Controllers/ProjectController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/src/ChatGPTImageOrchestrator.Web/Controllers/ProjectController.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ChatGPTImageOrchestrator.Web/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/src/ChatGPTImageOrchestrator.Web/Program.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ChatGPTImageOrchestrator.Web/appsettings.json" beforeDir="false" afterPath="$PROJECT_DIR$/src/ChatGPTImageOrchestrator.Web/appsettings.json" afterDir="false" />
-    </list>
+    <list default="true" id="e133d307-cbdd-4f2b-921d-da787c4beab3" name="Changes" comment="add gitignore" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -28,27 +19,27 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "FSnikers"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;FSnikers&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/FSnikers/MakeMeVideo.git",
-    "accountId": "ded54918-0f0a-45aa-96bc-b158055e8992"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/FSnikers/MakeMeVideo.git&quot;,
+    &quot;accountId&quot;: &quot;ded54918-0f0a-45aa-96bc-b158055e8992&quot;
   }
-}]]></component>
+}</component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$USER_HOME$/AppData/Local/JetBrains/Shared/vAny/DecompilerCache/decompiler/aee7db7b58754ff8a18a8154e2439ae220920/77/5e3cdc62/Channel.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/AppData/Local/Symbols/src/dotnet/runtime/5535e31a712343a63f5d7d796cd874e563e5ac14/src/libraries/Microsoft.Extensions.Configuration.Abstractions/src/ConfigurationExtensions.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://C:/Users/uvev1/RiderProjects/MakeMeVideo/src/ChatGPTImageOrchestrator.Application/DTOs/AccountDto.cs" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 2
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 2
+}</component>
   <component name="ProjectId" id="3EJz6QIgI2cuKgOZjsUoMGnHpb0" />
   <component name="ProjectLevelVcsManager">
     <ConfirmationsSetting value="2" id="Add" />
@@ -57,16 +48,26 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    ".NET Project.ChatGPTImageOrchestrator.Web.executor": "Debug",
-    "git-widget-placeholder": "main",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;.NET Project.ChatGPTImageOrchestrator.Web.executor&quot;: &quot;Debug&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  },
+  &quot;keyToStringList&quot;: {
+    &quot;rider.external.source.directories&quot;: [
+      &quot;C:\\Users\\uvev1\\AppData\\Local\\JetBrains\\Shared\\vAny\\DecompilerCache&quot;,
+      &quot;C:\\Users\\uvev1\\AppData\\Local\\JetBrains\\Shared\\vAny\\SourcesCache&quot;,
+      &quot;C:\\Users\\uvev1\\AppData\\Local\\Symbols\\src&quot;
+    ]
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="ChatGPTImageOrchestrator.Web" type="DotNetProject" factoryName=".NET Project">
       <option name="EXE_PATH" value="" />
@@ -96,6 +97,7 @@
       <option name="presentableId" value="Default" />
       <updated>1779911286664</updated>
       <workItem from="1779911288936" duration="2106000" />
+      <workItem from="1780773208842" duration="208000" />
     </task>
     <task id="LOCAL-00001" summary="upd">
       <option name="closed" value="true" />
