@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ImageGenerator")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0b9d751bc0b6803242c34401eb963f905df9455d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3309fe05bba4a6e1332b30a94028d0b3180e7a54")]
 [assembly: System.Reflection.AssemblyProductAttribute("ImageGenerator")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ImageGenerator")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
