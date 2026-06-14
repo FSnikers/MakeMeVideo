@@ -79,8 +79,15 @@ public class ChatGptPageDetectorModule : IChatGptPageDetectorModule
                 if (IsSessionExpired(driver))
                     return Task.FromResult(ChatGptPageStatus.SessionExpired);
 
+                if (IsAccountChooser(driver))
+                    return Task.FromResult(ChatGptPageStatus.AccountChooser);
+
                 if (HasChatPageElements(driver))
+                {
+                    if (IsLoginButtonVisible(driver))
+                        return Task.FromResult(ChatGptPageStatus.LoginPage);
                     return Task.FromResult(ChatGptPageStatus.ChatPage);
+                }
 
                 if (HasErrorState(driver, out var errorStatus))
                     return Task.FromResult(errorStatus);
@@ -131,6 +138,29 @@ public class ChatGptPageDetectorModule : IChatGptPageDetectorModule
         return result != current;
     }
 
+    public async Task<ChatGptPageStatus> DetectWithConfirmAsync(
+        int retryCount = 3, int delayMs = 400,
+        CancellationToken cancellationToken = default)
+    {
+        for (var retry = 0; retry < retryCount; retry++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var first = await DetectCurrentPageAsync();
+            await Task.Delay(delayMs, cancellationToken);
+            var second = await DetectCurrentPageAsync();
+
+            if (first == second)
+                return first;
+
+            _logger.LogWarning("Detect mismatch: {First} vs {Second}, retry {Retry}",
+                first, second, retry + 1);
+        }
+
+        _logger.LogWarning("DetectWithConfirm failed to get stable status after {RetryCount} retries", retryCount);
+        return ChatGptPageStatus.Unknown;
+    }
+
     private static bool IsCloudflareChallenge(ChromeDriver driver)
     {
         try
@@ -172,11 +202,19 @@ public class ChatGptPageDetectorModule : IChatGptPageDetectorModule
                 return true;
 
             var sessionBanners = driver.FindElements(
-                By.CssSelector("[class*='session'], [class*='expired'], [role='alert']"));
+                By.CssSelector("[class*='session'], [class*='expired'], [role='alert'], [role='dialog']"));
             foreach (var el in sessionBanners)
             {
                 var text = el.Text.ToLowerInvariant();
                 if (text.Contains("session") && (text.Contains("expired") || text.Contains("ended")))
+                    return true;
+            }
+
+            var openDialogs = driver.FindElements(By.CssSelector("[role='dialog'][data-state='open']"));
+            foreach (var dlg in openDialogs)
+            {
+                var text = dlg.Text.ToLowerInvariant();
+                if (text.Contains("session") && text.Contains("expired"))
                     return true;
             }
         }
@@ -185,6 +223,29 @@ public class ChatGptPageDetectorModule : IChatGptPageDetectorModule
         }
 
         return false;
+    }
+
+    private static bool IsAccountChooser(ChromeDriver driver)
+    {
+        try
+        {
+            var modal = driver.FindElements(By.CssSelector(
+                "#modal-no-auth-login, [data-testid='modal-no-auth-login']"));
+            if (modal.Count > 0 && modal.Any(e => e.Displayed))
+                return true;
+
+            var logBackForm = driver.FindElements(
+                By.CssSelector("[data-testid='log-back-form']"));
+            if (logBackForm.Count > 0 && logBackForm.Any(e => e.Displayed))
+                return true;
+
+            var pageText = driver.FindElement(By.TagName("body")).Text.ToLowerInvariant();
+            return pageText.Contains("choose an account to continue");
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static bool HasErrorState(ChromeDriver driver, out ChatGptPageStatus errorStatus)
@@ -255,5 +316,19 @@ public class ChatGptPageDetectorModule : IChatGptPageDetectorModule
         }
 
         return false;
+    }
+
+    private static bool IsLoginButtonVisible(ChromeDriver driver)
+    {
+        try
+        {
+            var loginButtons = driver.FindElements(
+                By.CssSelector("[data-testid='login-button']"));
+            return loginButtons.Count > 0 && loginButtons.Any(e => e.Displayed);
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

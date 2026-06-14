@@ -9,4 +9,5 @@ public enum ChatGptPageStatus
     CloudflareChallenge,
     LimitReached,
     ProhibitedContent,
+    AccountChooser,
 }

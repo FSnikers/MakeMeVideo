@@ -8,6 +8,7 @@ using ImageGenerator.Services.FilePrompt;
 using ImageGenerator.Services.FilePrompt.Interfaces;
 using ImageGenerator.Services.ImageGenerator.Abstractions;
 using ImageGenerator.Services.ImageGenerator.ChatGPT;
+using ImageGenerator.Services.ImageGenerator.ChatGPT.Actions;
 using ImageGenerator.Services.ImageGenerator.ChatGPT.Modules;
 using ImageGenerator.Services.ImageGenerator.ChatGPT.Modules.Interfaces;
 using ImageGenerator.Services.ImageGenerator.OpenAI;
@@ -41,19 +42,20 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddTransient<IChatGptPageDetectorModule, ChatGptPageDetectorModule>();
-        services.AddTransient<IChatGptBannerHandlerModule, ChatGptBannerHandlerModule>();
         services.AddTransient<IChatGptCredentialsModule, ChatGptCredentialsModule>();
         services.AddTransient<IChatGptPageInteractorModule, ChatGptPageInteractorModule>();
-        services.AddTransient<IChatGptErrorAnalyzerModule, ChatGptErrorAnalyzerModule>();
-        services.AddTransient<IChatGptImageExtractorHelperModule>(sp =>
+
+        services.AddTransient<IChatGptAuthAction, ChatGptAuthAction>();
+        services.AddTransient<IChatGptSessionAction, ChatGptSessionAction>();
+        services.AddTransient<IChatGptGenerateAction>(sp =>
         {
             var config = sp.GetRequiredService<IConfigManager>().GetConfig();
-            return new ChatGptImageExtractorHelperModule(
+            return new ChatGptGenerateAction(
                 sp.GetRequiredService<IBrowserDriverFactory>(),
-                sp.GetRequiredService<ILogger<ChatGptImageExtractorHelperModule>>(),
+                sp.GetRequiredService<IChatGptPageInteractorModule>(),
+                sp.GetRequiredService<ILogger<ChatGptGenerateAction>>(),
                 config.OutputDirectory);
         });
-        services.AddTransient<IChatGptImageExtractorModule, ChatGptImageExtractorModule>();
 
         // Register HttpClient factory for internal use (downloads)
         services.AddHttpClient("Downloader")

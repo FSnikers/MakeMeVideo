@@ -3,7 +3,6 @@ using ImageGenerator.Services.ImageGenerator.ChatGPT.Models;
 using ImageGenerator.Services.ImageGenerator.ChatGPT.Modules.Interfaces;
 using Microsoft.Extensions.Logging;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Interactions;
 
 namespace ImageGenerator.Services.ImageGenerator.ChatGPT.Modules;
 
@@ -90,11 +89,11 @@ public class ChatGptBannerHandlerModule : IChatGptBannerHandlerModule
 
         try
         {
-            var actions = new Actions(driver);
+            var seleniumActions = new OpenQA.Selenium.Interactions.Actions(driver);
             var offsetX = _rng.Next(1, Math.Max(1, element.Size.Width - 1));
             var offsetY = _rng.Next(1, Math.Max(1, element.Size.Height - 1));
 
-            actions
+            seleniumActions
                 .MoveToElement(element, offsetX, offsetY)
                 .Pause(TimeSpan.FromMilliseconds(_rng.Next(50, 200)))
                 .Click()

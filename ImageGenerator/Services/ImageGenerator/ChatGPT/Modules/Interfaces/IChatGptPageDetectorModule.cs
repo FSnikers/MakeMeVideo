@@ -17,4 +17,7 @@ public interface IChatGptPageDetectorModule
     Task<bool> EnsureTransitionAwayFromAsync(
         ChatGptPageStatus current,
         int timeoutSeconds = 15);
+
+    Task<ChatGptPageStatus> DetectWithConfirmAsync(int retryCount = 3, int delayMs = 400,
+        CancellationToken cancellationToken = default);
 }
