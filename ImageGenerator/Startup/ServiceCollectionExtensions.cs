@@ -40,7 +40,9 @@ public static class ServiceCollectionExtensions
             return factory;
         });
 
-        services.AddTransient<IChatGptLoginModule, ChatGptLoginModule>();
+        services.AddTransient<IChatGptPageDetectorModule, ChatGptPageDetectorModule>();
+        services.AddTransient<IChatGptBannerHandlerModule, ChatGptBannerHandlerModule>();
+        services.AddTransient<IChatGptCredentialsModule, ChatGptCredentialsModule>();
         services.AddTransient<IChatGptPageInteractorModule, ChatGptPageInteractorModule>();
         services.AddTransient<IChatGptErrorAnalyzerModule, ChatGptErrorAnalyzerModule>();
         services.AddTransient<IChatGptImageExtractorHelperModule>(sp =>

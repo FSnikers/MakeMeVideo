@@ -16,7 +16,10 @@ public class ChatGptErrorAnalyzerModule : IChatGptErrorAnalyzerModule
         "rate limit",
         "try again later",
         "usage limit",
-        "you've reached"
+        "you've reached",
+        "image creation limit",
+        "Upgrade to ChatGPT Plus or try again after",
+        "You can create more images when the limit resets",
     ];
 
     private static readonly string[] ProhibitedContentPatterns =

@@ -29,7 +29,7 @@ public static class PromptExtensions
             return;
         }
 
-        await repository.AddPromptsAsync(prompts);
+        //await repository.AddPromptsAsync(prompts);
         Console.WriteLine($"Загружено {prompts.Count} промптов в репозиторий");
 
         if (generator == null) return;

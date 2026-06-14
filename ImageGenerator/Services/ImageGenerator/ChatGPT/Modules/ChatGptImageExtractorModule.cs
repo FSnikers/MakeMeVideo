@@ -1,3 +1,4 @@
+using System.Linq;
 using ImageGenerator.Services.Browser;
 using ImageGenerator.Services.ImageGenerator.ChatGPT.Models;
 using ImageGenerator.Services.ImageGenerator.ChatGPT.Modules.Interfaces;
@@ -102,9 +103,12 @@ public class ChatGptImageExtractorModule : IChatGptImageExtractorModule
 
             try
             {
-                var pageBody = driver?.FindElement(By.TagName("body")).Text ?? "";
+                var mainContent = driver?.FindElements(
+                        By.XPath("//div[contains(@class, '@container/main')]"))
+                    .FirstOrDefault(e => e.Displayed);
+                var contentText = mainContent?.Text ?? driver?.FindElement(By.TagName("body")).Text ?? "";
 
-                var bodyError = _errorAnalyzerModule.AnalyzePageBody(pageBody);
+                var bodyError = _errorAnalyzerModule.AnalyzePageBody(contentText);
                 if (bodyError != null)
                 {
                     if (bodyError.ErrorType == "LimitReached")
