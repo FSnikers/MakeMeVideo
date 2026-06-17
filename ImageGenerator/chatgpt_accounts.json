@@ -1,10 +1,12 @@
 [
   {
-    "email": "brainrstudio@gmail.com",
-    "password": "IdiNahuiBrainRotStudioPasswordDaEtoParolPzdcDa?!12345678",
-    "is_active": true,
-    "last_used": null,
-    "generation_count_today": 0,
-    "last_reset_date": null
+    "email": "@gmail.com",
+    "password": "?!12345678",
+    "last_used": null
+  },
+  {
+    "email": "com",
+    "password": "!",
+    "last_used": null
   }
 ]
