@@ -73,6 +73,46 @@ public class ChatGptGenerateAction : IChatGptGenerateAction
         _outputDirectory = outputDirectory;
     }
 
+    public async Task<bool> SendBaseMessageAsync(string message, CancellationToken cancellationToken = default)
+    {
+        var driver = _driverFactory.Driver;
+        if (driver == null) return false;
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            _driverFactory.EnsureOnChatPage();
+            Thread.Sleep(2000);
+
+            var textarea = _interactor.FindPromptTextarea(ShortTimeoutSeconds);
+            if (textarea == null) return false;
+
+            _interactor.TypeText(textarea, message);
+            _interactor.RandomDelay(500, 1200);
+
+            var sendButton = _interactor.FindSendButton(ShortTimeoutSeconds);
+            if (sendButton == null || !sendButton.Enabled)
+            {
+                textarea.SendKeys(Keys.Enter);
+            }
+            else
+            {
+                try { sendButton.Click(); }
+                catch (ElementClickInterceptedException) { textarea.SendKeys(Keys.Enter); }
+            }
+
+            _logger.LogInformation("Base chat message sent, waiting for response...");
+            await Task.Delay(3000, cancellationToken);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Failed to send base message: {Message}", ex.Message);
+            return false;
+        }
+    }
+
     public async Task<GenerationResult> ExecuteAsync(string prompt, ChatGptAccount account, CancellationToken cancellationToken = default)
     {
         var driver = _driverFactory.Driver;

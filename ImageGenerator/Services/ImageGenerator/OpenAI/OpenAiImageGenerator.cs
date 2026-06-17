@@ -111,6 +111,11 @@ public class OpenAiImageGenerator : IImageGenerator
         return filePath;
     }
 
+    public Task<bool> SendBaseMessageAsync(string message, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(true);
+    }
+
     public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
     {
         try

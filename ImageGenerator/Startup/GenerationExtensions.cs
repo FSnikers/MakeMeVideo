@@ -54,8 +54,8 @@ public static class GenerationExtensions
         IConfigManager configManager,
         CancellationToken cancellationToken = default)
     {
-        var pendingPrompts = await repository.GetPendingPromptsAsync();
-        pendingPrompts = pendingPrompts.Where(p => p.Status == "pending").ToList();
+        var collection = await repository.GetPromptCollectionAsync();
+        var pendingPrompts = collection.Prompts.Where(p => p.Status == "pending").ToList();
 
         if (!pendingPrompts.Any())
         {
@@ -63,7 +63,14 @@ public static class GenerationExtensions
             return;
         }
 
-        Console.WriteLine($"\nНачинаю генерацию {pendingPrompts.Count()} изображений...\n");
+        Console.WriteLine($"\nНачинаю генерацию {pendingPrompts.Count} изображений...\n");
+
+        if (!string.IsNullOrEmpty(collection.BaseChatMessage))
+        {
+            Console.WriteLine("Отправка базового сообщения в чат...");
+            await generator.SendBaseMessageAsync(collection.BaseChatMessage, cancellationToken);
+            Console.WriteLine("Базовое сообщение отправлено");
+        }
 
         var config = configManager.GetConfig();
         var semaphore = new SemaphoreSlim(1, 1);
@@ -83,27 +90,28 @@ public static class GenerationExtensions
 
                     await repository.UpdatePromptStatusAsync(prompt.Id, "processing");
 
-                    Console.WriteLine($"[{prompt.Id}] Генерация: {prompt.Text[..Math.Min(60, prompt.Text.Length)]}...");
+                    var fullText = collection.PrePromptText + prompt.Text + collection.PostPromptText;
+                    Console.WriteLine($"[{prompt.Id}] Генерация: {fullText[..Math.Min(60, fullText.Length)]}...");
 
                     var request = new GenerationRequest
                     {
-                        Prompt = prompt.Text,
+                        Prompt = fullText,
                         Model = config.Model,
-                        Width = prompt.Parameters?.Width ?? config.ImageWidth,
-                        Height = prompt.Parameters?.Height ?? config.ImageHeight,
-                        Quality = prompt.Parameters?.Quality ?? config.Quality
+                        Width = config.ImageWidth,
+                        Height = config.ImageHeight,
+                        Quality = config.Quality
                     };
 
                     var result = await generator.GenerateImageAsync(request, cancellationToken);
 
                     if (result.IsSuccess)
                     {
-                        await repository.UpdatePromptStatusAsync(prompt.Id, "completed", result.ImagePath);
+                        await repository.UpdatePromptStatusAsync(prompt.Id, "completed");
                         Console.WriteLine($"✅ [{prompt.Id}] Готово! Путь: {result.ImagePath}");
                     }
                     else
                     {
-                        await repository.UpdatePromptStatusAsync(prompt.Id, "failed", errorMessage: result.ErrorMessage);
+                        await repository.UpdatePromptStatusAsync(prompt.Id, "failed");
                         Console.WriteLine($"❌ [{prompt.Id}] Ошибка: {result.ErrorMessage}");
                     }
                 }
@@ -113,7 +121,7 @@ public static class GenerationExtensions
                 }
                 catch (Exception ex)
                 {
-                    await repository.UpdatePromptStatusAsync(prompt.Id, "failed", errorMessage: ex.Message);
+                    await repository.UpdatePromptStatusAsync(prompt.Id, "failed");
                     Console.WriteLine($"❌ [{prompt.Id}] Критическая ошибка: {ex.Message}");
                 }
                 finally

@@ -6,4 +6,5 @@ namespace ImageGenerator.Services.ImageGenerator.ChatGPT.Actions;
 public interface IChatGptGenerateAction
 {
     Task<GenerationResult> ExecuteAsync(string prompt, ChatGptAccount account, CancellationToken cancellationToken = default);
+    Task<bool> SendBaseMessageAsync(string message, CancellationToken cancellationToken = default);
 }

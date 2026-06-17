@@ -21,16 +21,42 @@ public static class PromptExtensions
         }
 
         var json = await File.ReadAllTextAsync(promptsFile);
-        var prompts = JsonSerializer.Deserialize<List<PromptData>>(json);
+        PromptCollection? collection;
 
-        if (prompts == null || !prompts.Any())
+        try
+        {
+            collection = JsonSerializer.Deserialize<PromptCollection>(json);
+        }
+        catch
+        {
+            try
+            {
+                var oldPrompts = JsonSerializer.Deserialize<List<PromptData>>(json);
+                if (oldPrompts != null)
+                {
+                    collection = new PromptCollection { Prompts = oldPrompts };
+                }
+                else
+                {
+                    collection = null;
+                }
+            }
+            catch
+            {
+                collection = null;
+            }
+        }
+
+        if (collection == null || !collection.Prompts.Any())
         {
             Console.WriteLine("Файл prompts.json пуст или содержит некорректные данные");
             return;
         }
 
-        //await repository.AddPromptsAsync(prompts);
-        Console.WriteLine($"Загружено {prompts.Count} промптов в репозиторий");
+        Console.WriteLine($"Загружено {collection.Prompts.Count} промптов в репозиторий");
+        Console.WriteLine($"PrePromptText: {collection.PrePromptText}");
+        Console.WriteLine($"PostPromptText: {collection.PostPromptText}");
+        Console.WriteLine($"BaseChatMessage: {collection.BaseChatMessage}");
 
         if (generator == null) return;
 
@@ -71,29 +97,35 @@ public static class PromptExtensions
 
     public static void CreateExamplePromptsFile()
     {
-        var examplePrompts = new[]
+        var collection = new PromptCollection
         {
-            new PromptData
-            {
-                Id = Guid.NewGuid().ToString(),
-                Text = "A serene landscape with mountains and a lake at sunset, digital art style",
-                Status = "pending"
-            },
-            new PromptData
-            {
-                Id = Guid.NewGuid().ToString(),
-                Text = "Cyberpunk city street at night with neon lights, anime style, vibrant colors",
-                Status = "pending"
-            },
-            new PromptData
-            {
-                Id = Guid.NewGuid().ToString(),
-                Text = "A cute cat wearing a wizard hat, casting a spell, cartoon style",
-                Status = "pending"
-            }
+            PrePromptText = "",
+            PostPromptText = "",
+            BaseChatMessage = "You are an expert AI image generator. Generate high-quality images for each prompt I provide.",
+            Prompts =
+            [
+                new PromptData
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Text = "A serene landscape with mountains and a lake at sunset, digital art style",
+                    Status = "pending"
+                },
+                new PromptData
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Text = "Cyberpunk city street at night with neon lights, anime style, vibrant colors",
+                    Status = "pending"
+                },
+                new PromptData
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Text = "A cute cat wearing a wizard hat, casting a spell, cartoon style",
+                    Status = "pending"
+                }
+            ]
         };
 
-        var json = JsonSerializer.Serialize(examplePrompts,
+        var json = JsonSerializer.Serialize(collection,
             new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText("prompts.json", json);
         Console.WriteLine("Создан пример prompts.json");

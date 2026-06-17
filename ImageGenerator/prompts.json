@@ -1,14 +1,37 @@
-[
-  {
-    "id": "example-1",
-    "text": "A beautiful sunset over the ocean with dolphins jumping, realistic style",
-    "negativePrompt": "blurry, low quality",
-    "status": "pending",
-    "createdAt": "2024-01-01T00:00:00Z",
-    "parameters": {
-      "width": 1024,
-      "height": 1024,
-      "quality": "standard"
+{
+  "prePromptText": "Vertical 9:16 composition for YouTube Shorts, GTA 5 inspired loading screen artwork, comic-book realism, cinematic lighting, vibrant colors, dramatic perspective, ultra detailed, masterpiece quality, highly detailed character design, realistic resemblance to Yevgeny Prigozhin, no text, no captions, no logos, no watermarks, no GTA logo, no GTA title, no game interface.",
+  "postPromptText": "GTA 5 inspired art style, comic-book illustration, cinematic shadows, vibrant colors, ultra detailed, masterpiece, realistic face, sharp focus, dramatic storytelling scene, vertical 9:16, no text, no logo, no watermark, no GTA logo, no GTA title, no game interface.",
+  "baseChatMessage": "Generate a series of 6 connected images telling the life story of Yevgeny Prigozhin in GTA 5 inspired comic-book artwork style.",
+  "prompts": [
+    {
+      "id": "prigozhin-1",
+      "text": "Young Yevgeny Prigozhin in 1970s Leningrad, athletic teenager standing in a Soviet courtyard, apartment blocks behind him, ambitious expression, cold Soviet atmosphere, beginning of a future controversial life story",
+      "status": "pending"
+    },
+    {
+      "id": "prigozhin-2",
+      "text": "Young Yevgeny Prigozhin inside a Soviet prison cell in the 1980s, dramatic shadows through prison bars, serious face, lonely atmosphere, symbolizing years spent in prison, powerful emotional storytelling",
+      "status": "pending"
+    },
+    {
+      "id": "prigozhin-3",
+      "text": "Yevgeny Prigozhin selling hot dogs from a small street kiosk in Saint Petersburg during the early 1990s, busy street, customers nearby, determined entrepreneur starting from nothing, atmosphere of hope and ambition",
+      "status": "pending"
+    },
+    {
+      "id": "prigozhin-4",
+      "text": "Successful businessman Yevgeny Prigozhin inside an elegant luxury restaurant, expensive interior, influential guests, wearing a business suit, symbolizing his rise as a restaurateur and the man later known as Putin's chef",
+      "status": "pending"
+    },
+    {
+      "id": "prigozhin-5",
+      "text": "Yevgeny Prigozhin standing confidently in front of a group of military contractors, dramatic cloudy sky, powerful leader known as the chief musician, cinematic action atmosphere, symbolizing the rise of Wagner Group",
+      "status": "pending"
+    },
+    {
+      "id": "prigozhin-6",
+      "text": "Yevgeny Prigozhin standing near a private business jet at sunset, storm clouds on the horizon, dramatic final chapter of a controversial life story, cinematic atmosphere, symbolic ending, emotional and powerful composition",
+      "status": "pending"
     }
-  }
-]
+  ]
+}

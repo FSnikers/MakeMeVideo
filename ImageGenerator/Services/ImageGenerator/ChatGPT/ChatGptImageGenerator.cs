@@ -199,6 +199,21 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
             "MaxCyclesReached");
     }
 
+    public async Task<bool> SendBaseMessageAsync(string message, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(message)) return true;
+
+        await _driverLock.WaitAsync(cancellationToken);
+        try
+        {
+            return await _generateAction.SendBaseMessageAsync(message, cancellationToken);
+        }
+        finally
+        {
+            _driverLock.Release();
+        }
+    }
+
     public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
     {
         await _driverLock.WaitAsync(cancellationToken);
