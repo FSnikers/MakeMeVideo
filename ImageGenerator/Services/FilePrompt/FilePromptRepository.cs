@@ -83,13 +83,15 @@ public class FilePromptRepository : IPromptRepository
         return collection.Prompts.Where(p => p.Status == "pending" || p.Status == "processing");
     }
 
-    public async Task UpdatePromptStatusAsync(string id, string status)
+    public async Task UpdatePromptStatusAsync(string id, string status, string? outputPath = null, string? errorMessage = null)
     {
         var collection = await GetPromptCollectionAsync();
         var prompt = collection.Prompts.FirstOrDefault(p => p.Id == id);
         if (prompt != null)
         {
             prompt.Status = status;
+            if (outputPath != null) prompt.OutputPath = outputPath;
+            if (errorMessage != null) prompt.ErrorMessage = errorMessage;
             await WritePromptsAsync(collection);
         }
     }

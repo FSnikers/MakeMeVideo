@@ -12,4 +12,10 @@ public class PromptData
 
     [JsonPropertyName("status")]
     public string Status { get; set; } = "pending";
+
+    [JsonPropertyName("outputPath")]
+    public string? OutputPath { get; set; }
+
+    [JsonPropertyName("errorMessage")]
+    public string? ErrorMessage { get; set; }
 }

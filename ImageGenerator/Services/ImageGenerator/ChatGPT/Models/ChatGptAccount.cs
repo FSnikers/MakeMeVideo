@@ -13,6 +13,9 @@ public class ChatGptAccount
     [JsonPropertyName("cookies")]
     public List<CookieData>? Cookies { get; set; }
 
+    [JsonPropertyName("is_active")]
+    public bool IsActive { get; set; } = true;
+
     [JsonPropertyName("last_used")]
     public DateTime? LastUsed { get; set; }
 }

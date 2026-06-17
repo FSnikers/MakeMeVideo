@@ -30,8 +30,8 @@ public class JsonAccountStorage : IAccountStorage
         {
             var defaultAccounts = new List<ChatGptAccount>
             {
-                new() { Email = "your_email1@gmail.com", Password = "your_password1" },
-                new() { Email = "your_email2@gmail.com", Password = "your_password2" }
+                new() { Email = "your_email1@gmail.com", Password = "your_password1", IsActive = true },
+                new() { Email = "your_email2@gmail.com", Password = "your_password2", IsActive = true }
             };
             var json = JsonSerializer.Serialize(defaultAccounts, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(_accountsFilePath, json);
@@ -53,6 +53,7 @@ public class JsonAccountStorage : IAccountStorage
         lock (_lock)
         {
             var account = _accounts
+                .Where(a => a.IsActive)
                 .OrderBy(a => a.LastUsed ?? DateTime.MinValue)
                 .FirstOrDefault();
 
@@ -76,6 +77,15 @@ public class JsonAccountStorage : IAccountStorage
 
     public Task MarkAccountLimitReachedAsync(ChatGptAccount account)
     {
+        lock (_lock)
+        {
+            var targetAccount = _accounts.FirstOrDefault(a => a.Email == account.Email);
+            if (targetAccount != null)
+            {
+                targetAccount.IsActive = false;
+                SaveAccountsToFile();
+            }
+        }
         return Task.CompletedTask;
     }
 

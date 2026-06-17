@@ -106,12 +106,12 @@ public static class GenerationExtensions
 
                     if (result.IsSuccess)
                     {
-                        await repository.UpdatePromptStatusAsync(prompt.Id, "completed");
+                        await repository.UpdatePromptStatusAsync(prompt.Id, "completed", outputPath: result.ImagePath);
                         Console.WriteLine($"✅ [{prompt.Id}] Готово! Путь: {result.ImagePath}");
                     }
                     else
                     {
-                        await repository.UpdatePromptStatusAsync(prompt.Id, "failed");
+                        await repository.UpdatePromptStatusAsync(prompt.Id, "failed", errorMessage: result.ErrorMessage);
                         Console.WriteLine($"❌ [{prompt.Id}] Ошибка: {result.ErrorMessage}");
                     }
                 }
@@ -121,7 +121,7 @@ public static class GenerationExtensions
                 }
                 catch (Exception ex)
                 {
-                    await repository.UpdatePromptStatusAsync(prompt.Id, "failed");
+                    await repository.UpdatePromptStatusAsync(prompt.Id, "failed", errorMessage: ex.Message);
                     Console.WriteLine($"❌ [{prompt.Id}] Критическая ошибка: {ex.Message}");
                 }
                 finally

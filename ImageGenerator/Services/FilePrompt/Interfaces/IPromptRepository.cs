@@ -9,5 +9,5 @@ public interface IPromptRepository
     Task AddPromptAsync(PromptData prompt);
     Task DeletePromptAsync(string id);
     Task<IEnumerable<PromptData>> GetPendingPromptsAsync();
-    Task UpdatePromptStatusAsync(string id, string status);
+    Task UpdatePromptStatusAsync(string id, string status, string? outputPath = null, string? errorMessage = null);
 }
