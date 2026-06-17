@@ -21,27 +21,16 @@ public class ChatGptGenerateAction : IChatGptGenerateAction
     private const int PollingIntervalMs = 1000;
     private const long MaxImageBytes = 20 * 1024 * 1024;
 
-    private static readonly string[] ImageSelectors =
-    [
-        "figure img[src*='data:image']",
-        "figure img[src*='chatgpt.com' i]",
-        "figure img[src*='oaidalleapiprodscus' i]",
-        "img[alt*='image' i]",
-        "img[alt*='generated' i]",
-        "figure img",
-        "[data-message-author-role='assistant'] img"
-    ];
-
     private static readonly string[] LimitErrorPatterns =
     [
-        "limit reached",
+       // "limit reached",
         "generation limit",
         "too many requests",
         "rate limit",
         "try again later",
         "usage limit",
-        "you've reached",
-        "image creation limit",
+       // "you've reached",
+       // "image creation limit",
         "Upgrade to ChatGPT Plus or try again after",
         "You can create more images when the limit resets",
     ];
@@ -88,7 +77,7 @@ public class ChatGptGenerateAction : IChatGptGenerateAction
             var textarea = _interactor.FindPromptTextarea(ShortTimeoutSeconds);
             if (textarea == null) return false;
 
-            _interactor.TypeText(textarea, message);
+            _interactor.TypeText(textarea, message, true);
             _interactor.RandomDelay(500, 1200);
 
             var sendButton = _interactor.FindSendButton(ShortTimeoutSeconds);
@@ -139,7 +128,7 @@ public class ChatGptGenerateAction : IChatGptGenerateAction
                         "Не удалось найти поле ввода промпта на странице ChatGPT", "NoInputField");
             }
 
-            _interactor.TypeText(textarea, prompt);
+            _interactor.TypeText(textarea, prompt,true);
             _interactor.RandomDelay(500, 1200);
 
             var sendButton = _interactor.FindSendButton(ShortTimeoutSeconds);
@@ -195,21 +184,17 @@ public class ChatGptGenerateAction : IChatGptGenerateAction
                     return bodyError;
                 }
 
-                var stopBtn = _interactor.FindStopButton(2);
-                if (stopBtn != null && stopBtn.Displayed)
-                {
-                    await Task.Delay(PollingIntervalMs, cancellationToken);
-                    continue;
-                }
-
                 var imageResult = await ExtractImageFromPageAsync();
-                if (imageResult != null)
+                var stopBtn = _interactor.FindStopButton(2);
+                var generationCompleted = stopBtn == null || !stopBtn.Displayed;
+
+                if (imageResult != null && generationCompleted)
                     return imageResult;
 
                 var assistantMessages = driver?.FindElements(
-                    By.CssSelector("[data-message-author-role='assistant']")).ToList();
+                    By.CssSelector("section[data-turn='assistant']")).ToList();
 
-                if (assistantMessages != null && assistantMessages.Count > 0)
+                if (assistantMessages != null && assistantMessages.Count > 0 && generationCompleted)
                 {
                     var lastMessage = assistantMessages.Last().Text;
                     var msgError = AnalyzeAssistantMessage(lastMessage, DateTime.UtcNow - startTime);
@@ -330,81 +315,55 @@ public class ChatGptGenerateAction : IChatGptGenerateAction
         var driver = _driverFactory.Driver;
         if (driver == null) return null;
 
-        foreach (var selector in ImageSelectors)
-        {
-            try
-            {
-                var images = driver.FindElements(By.CssSelector(selector));
-                foreach (var img in images)
-                {
-                    try
-                    {
-                        var src = img.GetAttribute("src");
-                        if (string.IsNullOrEmpty(src)) continue;
-
-                        if (src.StartsWith("https://chatgpt.com/backend-api/estuary/content"))
-                        {
-                            var base64Data = src[(src.IndexOf(",") + 1)..];
-                            var imageData = Convert.FromBase64String(base64Data);
-                            var outputPath = SaveImageToFile(imageData);
-                            _logger.LogInformation("Image extracted from data URI, saved to {Path}", outputPath);
-                            return GenerationResult.Success(outputPath);
-                        }
-
-                        if (src.Contains("oaidalleapiprodscus") ||
-                            (src.Contains("chatgpt") && src.EndsWith(".png")))
-                        {
-                            var outputPath = await DownloadAndSaveImageAsync(src);
-                            if (outputPath != null)
-                            {
-                                _logger.LogInformation("Image downloaded from {Url}", src);
-                                return GenerationResult.Success(outputPath);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning("Failed to process image element: {Message}", ex.Message);
-                    }
-                }
-            }
-            catch (NoSuchElementException)
-            {
-            }
-        }
-
         try
         {
-            var allImgs = driver.FindElements(By.TagName("img"));
-            foreach (var img in allImgs)
+            var assistantMessages = driver.FindElements(
+                By.CssSelector("section[data-turn='assistant']")).ToList();
+
+            if (assistantMessages.Count == 0)
+                return null;
+
+            var lastAssistant = assistantMessages.Last();
+
+            var images = lastAssistant.FindElements(By.TagName("img"));
+            foreach (var img in images)
             {
                 try
                 {
                     var src = img.GetAttribute("src");
                     if (string.IsNullOrEmpty(src)) continue;
 
+                    string? outputPath = null;
+
                     if (src.StartsWith("https://chatgpt.com/backend-api/estuary/content"))
                     {
                         var imageBytes = await DownloadImageViaFetchAsync(src);
-                        var outputPath = SaveImageToFile(imageBytes);
-                        _logger.LogInformation("Image extracted from data URI (fallback), saved to {Path}", outputPath);
-                        return GenerationResult.Success(outputPath);
+                        outputPath = SaveImageToFile(imageBytes);
+                    }
+                    else if (src.Contains("oaidalleapiprodscus") ||
+                             (src.Contains("chatgpt") && src.EndsWith(".png")))
+                    {
+                        outputPath = await DownloadAndSaveImageAsync(src);
                     }
 
-                    if (src.Contains("oaidalleapiprodscus"))
+                    if (outputPath != null)
                     {
-                        var outputPath = await DownloadAndSaveImageAsync(src);
-                        if (outputPath != null)
-                            return GenerationResult.Success(outputPath);
+                        _logger.LogInformation("Image extracted from last assistant message, saved to {Path}", outputPath);
+                        return GenerationResult.Success(outputPath);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger.LogWarning("Failed to process image element: {Message}", ex.Message);
                 }
             }
         }
-        catch
+        catch (NoSuchElementException)
         {
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Error finding assistant messages: {Message}", ex.Message);
         }
 
         return null;

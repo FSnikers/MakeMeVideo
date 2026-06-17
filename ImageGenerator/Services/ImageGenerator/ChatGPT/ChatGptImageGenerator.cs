@@ -25,7 +25,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
     private ChatGptAccount? _currentAccount;
     private bool _disposed;
 
-    private const int MaxAccountSwitchAttempts = 3;
+    private const int MaxAccountSwitchAttempts = 99;
     private const int MaxDetectionCycles = 15;
 
     public ChatGptImageGenerator(
@@ -49,7 +49,6 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
     public async Task<GenerationResult> GenerateImageAsync(GenerationRequest request, CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        var lastException = (Exception?)null;
 
         await _driverLock.WaitAsync(cancellationToken);
         try
@@ -58,14 +57,16 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                _currentAccount = await _accountStorage.GetNextAvailableAccountAsync();
-
                 if (_currentAccount == null)
                 {
-                    _logger.LogError("No available ChatGPT accounts");
-                    return GenerationResult.Failure(
-                        "Нет доступных аккаунтов ChatGPT. Добавьте учетные записи в chatgpt_accounts.json",
-                        "NoAccounts");
+                    _currentAccount = await _accountStorage.GetNextAvailableAccountAsync();
+                    if (_currentAccount == null)
+                    {
+                        _logger.LogError("No available ChatGPT accounts");
+                        return GenerationResult.Failure(
+                            "Нет доступных аккаунтов ChatGPT. Добавьте учетные записи в chatgpt_accounts.json",
+                            "NoAccounts");
+                    }
                 }
 
                 _logger.LogInformation("Using account: {Email} (attempt {Attempt})",
@@ -80,9 +81,8 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
                         result.Duration = stopwatch.Elapsed;
                         return result;
                     }
-
-                    _logger.LogInformation("Switching from account {Email} (result signaled switch)",
-                        _currentAccount.Email);
+                    _logger.LogInformation("Switching from account {Email}", _currentAccount.Email);
+                    _currentAccount = await _accountStorage.GetNextAvailableAccountAsync();
                 }
                 catch (OperationCanceledException)
                 {
@@ -91,8 +91,9 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    lastException = ex;
                     _logger.LogError(ex, "Error generating image with account {Email}", _currentAccount.Email);
+                    return GenerationResult.Failure(
+                        $"Ошибка генерации: {ex.Message}", "GenerationError");
                 }
 
                 if (attempt < MaxAccountSwitchAttempts - 1)
@@ -108,8 +109,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
 
         stopwatch.Stop();
         return GenerationResult.Failure(
-            $"Не удалось сгенерировать изображение после {MaxAccountSwitchAttempts} попыток. " +
-            $"Последняя ошибка: {lastException?.Message}",
+            $"Не удалось сгенерировать изображение после {MaxAccountSwitchAttempts} попыток (все аккаунты исчерпали лимит)",
             "MaxAttemptsReached");
     }
 
@@ -119,11 +119,15 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            await Task.Delay(100, cancellationToken);
             var status = await _detector.DetectWithConfirmAsync(cancellationToken: cancellationToken);
             _logger.LogInformation("Cycle {Cycle}: confirmed status = {Status}", cycle, status);
 
             switch (status)
             {
+                case ChatGptPageStatus.UnAuthChatPage:
+                    _driverFactory.NavigateToUrl("https://chatgpt.com/auth/login");
+                    break;
                 case ChatGptPageStatus.ChatPage:
                     var result = await _generateAction.ExecuteAsync(
                         request.Prompt, _currentAccount!, cancellationToken);
@@ -141,10 +145,13 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
                             return null;
 
                         case "Timeout":
-                            return null;
+                            return GenerationResult.Failure(
+                                "Превышено время ожидания генерации изображения", "Timeout");
 
                         default:
-                            return result;
+                            _logger.LogWarning("Unrecognized error type {ErrorType} for account {Email}, switching",
+                                result.ErrorType, _currentAccount!.Email);
+                            return null;
                     }
 
                 case ChatGptPageStatus.LoginPage:
@@ -164,6 +171,10 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
 
                 case ChatGptPageStatus.AccountChooser:
                     await _authAction.HandleAccountChooserAsync(cancellationToken);
+                    break;
+
+                case ChatGptPageStatus.GmailLogin:
+                    await _authAction.HandleGmailLoginAsync(_currentAccount!, cancellationToken);
                     break;
 
                 case ChatGptPageStatus.CloudflareChallenge:

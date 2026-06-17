@@ -78,8 +78,14 @@ public class ChatGptPageInteractorModule : IChatGptPageInteractorModule
         return FindElementWithFallback(StopButtonSelectors, timeoutSeconds);
     }
 
-    public void TypeText(IWebElement element, string text)
+    public void TypeText(IWebElement element, string text, bool fastInput = false)
     {
+        if (fastInput)
+        {
+            TypeFastText(element, text);
+            return;
+        }
+        
         element.Click();
 
         if (string.IsNullOrEmpty(text))
@@ -109,6 +115,29 @@ public class ChatGptPageInteractorModule : IChatGptPageInteractorModule
 
                 if (_rng.Next(30) == 0)
                     Thread.Sleep(_rng.Next(200, 400));
+            }
+        }
+    }
+
+    private void TypeFastText(IWebElement element, string text)
+    {
+        element.Click();
+
+        if (string.IsNullOrEmpty(text))
+            return;
+
+        if (text.Length > 50)
+        {
+                element.SendKeys(text);
+        }
+        else
+        {
+            element.Clear();
+
+            foreach (var c in text)
+            {
+                element.SendKeys(c.ToString());
+                Thread.Sleep(_rng.Next(4, 12));
             }
         }
     }

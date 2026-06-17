@@ -11,4 +11,6 @@ public interface IChatGptAuthAction
     Task HandleSessionExpiredAsync(CancellationToken cancellationToken = default);
 
     Task HandleAccountChooserAsync(CancellationToken cancellationToken = default);
+
+    Task HandleGmailLoginAsync(ChatGptAccount account, CancellationToken cancellationToken = default);
 }

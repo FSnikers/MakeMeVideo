@@ -51,7 +51,7 @@ public class ChatGptCredentialsModule : IChatGptCredentialsModule
         _logger = logger;
     }
 
-    public async Task FillCredentialsAsync(ChatGptAccount account, CancellationToken cancellationToken = default)
+    public async Task FillEmailAsync(ChatGptAccount account, CancellationToken cancellationToken = default)
     {
         var driver = _driverFactory.Driver;
         if (driver == null || account == null)
@@ -59,7 +59,7 @@ public class ChatGptCredentialsModule : IChatGptCredentialsModule
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        _logger.LogInformation("Filling credentials for {Email}", account.Email);
+        _logger.LogInformation("Filling email for {Email}", account.Email);
 
         var emailInput = FindElementWithFallback(EmailInputSelectors, ShortTimeoutSeconds);
         if (emailInput != null)
@@ -69,8 +69,19 @@ public class ChatGptCredentialsModule : IChatGptCredentialsModule
 
             var continueBtn = FindElementWithFallback(SubmitButtonSelectors, ShortTimeoutSeconds);
             continueBtn?.Click();
-            RandomDelay(2000, 3000);
+            RandomDelay(8000, 10000);
         }
+    }
+
+    public async Task FillPasswordAsync(ChatGptAccount account, CancellationToken cancellationToken = default)
+    {
+        var driver = _driverFactory.Driver;
+        if (driver == null || account == null)
+            throw new InvalidOperationException("Driver or account not initialized");
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        _logger.LogInformation("Filling password for {Email}", account.Email);
 
         var passwordInput = FindElementWithFallback(PasswordInputSelectors, ShortTimeoutSeconds);
         if (passwordInput != null)
@@ -80,53 +91,6 @@ public class ChatGptCredentialsModule : IChatGptCredentialsModule
 
             var loginBtn = FindElementWithFallback(SubmitButtonSelectors, ShortTimeoutSeconds);
             loginBtn?.Click();
-        }
-        else
-        {
-            await FallbackFillAsync(account);
-        }
-    }
-
-    private async Task FallbackFillAsync(ChatGptAccount account)
-    {
-        var driver = _driverFactory.Driver;
-        if (driver == null) return;
-
-        var allInputs = driver.FindElements(By.TagName("input")).ToList();
-        var allButtons = driver.FindElements(By.TagName("button")).ToList();
-
-        if (allInputs.Count == 0) return;
-
-        HumanLikeType(allInputs[0], account.Email);
-        RandomDelay(800, 1500);
-
-        var submitBtns = allButtons.Where(b =>
-        {
-            var text = b.Text.ToLowerInvariant();
-            return text.Contains("continue") || text.Contains("submit") ||
-                   text.Contains("next") || text.Contains("log") ||
-                   text.Contains("sign");
-        }).ToList();
-
-        (submitBtns.FirstOrDefault() ?? allButtons.FirstOrDefault())?.Click();
-        RandomDelay(2000, 3000);
-
-        var inputsAfter = driver.FindElements(By.TagName("input")).ToList();
-        if (inputsAfter.Count >= 1)
-        {
-            HumanLikeType(inputsAfter[0], account.Password);
-            RandomDelay(800, 1500);
-
-            var buttonsAfter = driver.FindElements(By.TagName("button")).ToList();
-            var submitBtns2 = buttonsAfter.Where(b =>
-            {
-                var text = b.Text.ToLowerInvariant();
-                return text.Contains("continue") || text.Contains("submit") ||
-                       text.Contains("log") || text.Contains("sign") ||
-                       text.Contains("enter");
-            }).ToList();
-
-            (submitBtns2.FirstOrDefault() ?? buttonsAfter.FirstOrDefault())?.Click();
         }
     }
 

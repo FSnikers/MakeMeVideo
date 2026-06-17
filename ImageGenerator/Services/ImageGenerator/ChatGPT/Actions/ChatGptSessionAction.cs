@@ -49,6 +49,17 @@ public class ChatGptSessionAction : IChatGptSessionAction
             _logger.LogWarning("Failed to delete cookies during logout: {Message}", ex.Message);
         }
 
+        try
+        {
+            driver.ExecuteScript("localStorage.clear(); sessionStorage.clear();");
+            _logger.LogInformation("Browser storage cleared for logout");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Failed to clear browser storage: {Message}", ex.Message);
+        }
+        
+
         _driverFactory.NavigateToUrl("https://chatgpt.com/auth/login");
         var onLoginPage = await _detector.WaitForExactStatusAsync(ChatGptPageStatus.LoginPage, 15);
 

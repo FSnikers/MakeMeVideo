@@ -5,6 +5,7 @@ using ImageGenerator.Services.ImageGenerator.ChatGPT.Models;
 using ImageGenerator.Services.ImageGenerator.ChatGPT.Modules.Interfaces;
 using Microsoft.Extensions.Logging;
 using OpenQA.Selenium;
+using OpenQA.Selenium.Support.UI;
 
 namespace ImageGenerator.Services.ImageGenerator.ChatGPT.Actions;
 
@@ -46,7 +47,61 @@ public class ChatGptAuthAction : IChatGptAuthAction
             return;
         }
 
-        await _credentialsModule.FillCredentialsAsync(account, cancellationToken);
+        await _credentialsModule.FillEmailAsync(account, cancellationToken);
+
+        var afterEmail = await _detector.WaitForStatusAsync(
+            s => s is ChatGptPageStatus.ChatPage or ChatGptPageStatus.GmailLogin or ChatGptPageStatus.LoginPage,
+            LoginTimeoutSeconds);
+
+        if (afterEmail == ChatGptPageStatus.ChatPage)
+        {
+            _logger.LogInformation("Auto-logged in after email submit");
+            await SaveCookiesForAccountAsync(account);
+            return;
+        }
+
+        if (afterEmail == ChatGptPageStatus.GmailLogin)
+        {
+            _logger.LogInformation("Redirected to Gmail, handling password");
+            await HandleGmailLoginAsync(account, cancellationToken);
+            return;
+        }
+
+        _logger.LogInformation("Still on LoginPage, filling password");
+        await _credentialsModule.FillPasswordAsync(account, cancellationToken);
+
+        var afterPassword = await _detector.WaitForExactStatusAsync(ChatGptPageStatus.ChatPage, LoginTimeoutSeconds);
+        if (afterPassword)
+        {
+            await SaveCookiesForAccountAsync(account);
+        }
+    }
+
+    public async Task HandleGmailLoginAsync(ChatGptAccount account, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Handling Gmail login for {Email}", account.Email);
+
+        var driver = _driverFactory.Driver;
+        if (driver == null) return;
+
+        await _detector.WaitForExactStatusAsync(ChatGptPageStatus.GmailLogin, 15);
+
+        // Email comes pre-filled from ChatGPT OAuth redirect
+        // Click Next on the identifier page if still showing
+        ClickGmailNext();
+        Thread.Sleep(2000);
+
+        var passwordInput = FindGmailElement(By.CssSelector("input[type='password']"), 15);
+        if (passwordInput == null)
+        {
+            _logger.LogWarning("Gmail password input not found");
+            return;
+        }
+
+        HumanLikeType(passwordInput, account.Password);
+        Thread.Sleep(800);
+
+        ClickGmailNext();
 
         var afterLogin = await _detector.WaitForExactStatusAsync(ChatGptPageStatus.ChatPage, LoginTimeoutSeconds);
         if (afterLogin)
@@ -321,6 +376,96 @@ public class ChatGptAuthAction : IChatGptAuthAction
         catch
         {
             element.Click();
+        }
+    }
+
+    private void ClickGmailNext()
+    {
+        var driver = _driverFactory.Driver;
+        if (driver == null) return;
+
+        try
+        {
+            var nextButtons = driver.FindElements(By.CssSelector(
+                "#identifierNext button, #passwordNext button, " +
+                "button[jsname='V67aGc'], " +
+                "div[role='button'][jsname]"));
+            foreach (var btn in nextButtons)
+            {
+                var text = btn.Text.Trim().ToLowerInvariant();
+                if (text is "next" or "далее")
+                {
+                    if (btn.Displayed && btn.Enabled)
+                    {
+                        NaturalClick(btn);
+                        return;
+                    }
+                }
+            }
+
+            var allButtons = driver.FindElements(By.TagName("button"));
+            foreach (var btn in allButtons)
+            {
+                var text = btn.Text.Trim().ToLowerInvariant();
+                if (text is "next" or "далее" && btn.Displayed && btn.Enabled)
+                {
+                    NaturalClick(btn);
+                    return;
+                }
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private IWebElement? FindGmailElement(By by, int timeoutSeconds)
+    {
+        var driver = _driverFactory.Driver;
+        if (driver == null) return null;
+
+        try
+        {
+            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(timeoutSeconds))
+            {
+                PollingInterval = TimeSpan.FromMilliseconds(200)
+            };
+
+            return wait.Until(d =>
+            {
+                try
+                {
+                    var el = d.FindElement(by);
+                    return el != null && el.Displayed && el.Enabled ? el : null;
+                }
+                catch
+                {
+                    return null;
+                }
+            });
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void HumanLikeType(IWebElement element, string text)
+    {
+        element.Click();
+
+        if (string.IsNullOrEmpty(text))
+            return;
+
+        element.Clear();
+
+        foreach (var c in text)
+        {
+            element.SendKeys(c.ToString());
+            Thread.Sleep(_rng.Next(40, 120));
+
+            if (_rng.Next(30) == 0)
+                Thread.Sleep(_rng.Next(200, 400));
         }
     }
 

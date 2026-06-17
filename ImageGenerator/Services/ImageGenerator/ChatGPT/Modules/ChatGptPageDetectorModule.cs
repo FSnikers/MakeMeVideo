@@ -71,6 +71,9 @@ public class ChatGptPageDetectorModule : IChatGptPageDetectorModule
             if (IsCloudflareChallenge(driver))
                 return Task.FromResult(ChatGptPageStatus.CloudflareChallenge);
 
+            if (url.Contains("accounts.google.com"))
+                return Task.FromResult(ChatGptPageStatus.GmailLogin);
+
             if (url.Contains("auth") || url.Contains("login"))
                 return Task.FromResult(ChatGptPageStatus.LoginPage);
 
@@ -85,7 +88,11 @@ public class ChatGptPageDetectorModule : IChatGptPageDetectorModule
                 if (HasChatPageElements(driver))
                 {
                     if (IsLoginButtonVisible(driver))
-                        return Task.FromResult(ChatGptPageStatus.LoginPage);
+                    {
+                        if (IsLoginSite(driver))
+                            return Task.FromResult(ChatGptPageStatus.LoginPage);
+                        return Task.FromResult(ChatGptPageStatus.UnAuthChatPage);
+                    }
                     return Task.FromResult(ChatGptPageStatus.ChatPage);
                 }
 
@@ -114,6 +121,7 @@ public class ChatGptPageDetectorModule : IChatGptPageDetectorModule
             var status = await DetectCurrentPageAsync();
             if (predicate(status))
                 return status;
+
             await Task.Delay(500);
         }
         var last = await DetectCurrentPageAsync();
@@ -170,19 +178,19 @@ public class ChatGptPageDetectorModule : IChatGptPageDetectorModule
             var bodyText = driver.FindElement(By.TagName("body")).Text.ToLowerInvariant();
             var pageSource = driver.PageSource.ToLowerInvariant();
 
-            return url.Contains("cloudflare") ||
-                   url.Contains("challenge") ||
-                   title.Contains("cloudflare") ||
-                   title.Contains("just a moment") ||
-                   bodyText.Contains("checking your browser") ||
-                   bodyText.Contains("verifying you are human") ||
-                   bodyText.Contains("enable javascript") ||
-                   bodyText.Contains("cloudflare") ||
-                   pageSource.Contains("cf-challenge") ||
-                   pageSource.Contains("cf-browser-verification") ||
-                   pageSource.Contains("_cf_chl_opt") ||
-                   pageSource.Contains("__cf_chl_f_tk") ||
-                   pageSource.Contains("cf-please-wait");
+            return url.Contains("cloudflare")
+                   || url.Contains("challenge")
+                   || title.Contains("cloudflare")
+                   || title.Contains("just a moment")
+                   || bodyText.Contains("checking your browser")
+                   || bodyText.Contains("verifying you are human")
+                   || bodyText.Contains("enable javascript")
+                   || bodyText.Contains("cloudflare")
+                   || pageSource.Contains("cf-challenge")
+                   || pageSource.Contains("cf-browser-verification")
+                   || pageSource.Contains("_cf_chl_opt")
+                   || pageSource.Contains("__cf_chl_f_tk")
+                   || pageSource.Contains("cf-please-wait");
         }
         catch
         {
@@ -254,9 +262,9 @@ public class ChatGptPageDetectorModule : IChatGptPageDetectorModule
         try
         {
             var errorContainers = driver.FindElements(
-                By.CssSelector("[role='alert'], .error, .warning, [class*='toast'], " +
-                               "[class*='modal'], [class*='overlay'], " +
-                               "[class*='banner'], [class*='notification']"));
+                By.CssSelector("[role='alert'], .error, .warning, [class*='toast'], "
+                               + "[class*='modal'], [class*='overlay'], "
+                               + "[class*='banner'], [class*='notification']"));
 
             foreach (var container in errorContainers)
             {
@@ -318,13 +326,25 @@ public class ChatGptPageDetectorModule : IChatGptPageDetectorModule
         return false;
     }
 
-    private static bool IsLoginButtonVisible(ChromeDriver driver)
+    private static bool IsLoginSite(ChromeDriver driver)
     {
         try
         {
             var loginButtons = driver.FindElements(
                 By.CssSelector("[data-testid='login-button']"));
-            return loginButtons.Count > 0 && loginButtons.Any(e => e.Displayed);
+            return loginButtons.Count > 0 && loginButtons.Any(e => e.Displayed) && driver.Url.Contains("auth/login");
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool IsLoginButtonVisible(ChromeDriver driver)
+    {
+        try
+        {
+            return driver.Url.Contains("auth/login");
         }
         catch
         {
