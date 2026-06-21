@@ -42,6 +42,8 @@ while (true)
             break;
         case "5":
             Console.WriteLine("Выход...");
+            generator.Dispose();
+            ProcessKiller.KillChromeDrivers();
             return;
         default:
             Console.WriteLine("Неверный выбор");

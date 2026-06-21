@@ -119,7 +119,7 @@ public class ChatGptImageGenerator : IImageGenerator, IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            await Task.Delay(100, cancellationToken);
+            await Task.Delay(1000, cancellationToken);
             var status = await _detector.DetectWithConfirmAsync(cancellationToken: cancellationToken);
             _logger.LogInformation("Cycle {Cycle}: confirmed status = {Status}", cycle, status);
 

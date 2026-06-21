@@ -138,4 +138,8 @@ public class OpenAiImageGenerator : IImageGenerator
             return false;
         }
     }
+    public void Dispose()
+    {
+        
+    }
 }
