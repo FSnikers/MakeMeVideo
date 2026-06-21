@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ImageGenerator.Services.ImageGenerator.ChatGPT;
 
-public class ChatGptImageGenerator : IImageGenerator, IDisposable
+public class ChatGptImageGenerator : IImageGenerator
 {
     private readonly IAccountStorage _accountStorage;
     private readonly ILogger<ChatGptImageGenerator> _logger;
